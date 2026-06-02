@@ -43,9 +43,9 @@ def test_ipv4_loopback_in_cors_rejected_in_dev() -> None:
 
 def test_real_https_origin_accepted_in_dev() -> None:
     settings = _make_settings(
-        cors_origins=["https://main.dew27gk9z09jh.amplifyapp.com"],
+        cors_origins=["https://app.example.com"],
     )
-    assert settings.cors_origins == ["https://main.dew27gk9z09jh.amplifyapp.com"]
+    assert settings.cors_origins == ["https://app.example.com"]
 
 
 def test_localhost_allowed_in_local_environment() -> None:

@@ -13,7 +13,7 @@
     "test:watch": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "gen:api": "openapi-typescript ${API_SPEC_URL:-https://grsv8u4uit.us-east-1.awsapprunner.com/openapi.json} -o types/api.d.ts"
+    "gen:api": "openapi-typescript ${API_SPEC_URL:-http://localhost:8000/openapi.json} -o types/api.d.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

@@ -316,7 +316,7 @@ class Settings(BaseSettings):
                 "CORS_ORIGINS contains localhost entries that won't work in "
                 f"environment={self.environment.value}: {offenders}. "
                 "Update CORS_ORIGINS to the actual frontend origin "
-                "(e.g., https://main.dew27gk9z09jh.amplifyapp.com)."
+                "(e.g., https://<your-app>.amplifyapp.com)."
             )
         return self
 
