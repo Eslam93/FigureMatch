@@ -34,14 +34,14 @@ Data must exist before the OpenAI secret can be populated, and the OpenAI secret
 >
 > # After Amplify URL is known, redeploy Compute with the real values:
 > npx cdk deploy magnacms-dev-compute -c env=dev \
->   -c cors_origins=https://main.dew27gk9z09jh.amplifyapp.com \
->   -c images_cdn_base_url=https://grsv8u4uit.us-east-1.awsapprunner.com/local-images
+>   -c cors_origins=https://<your-app>.amplifyapp.com \
+>   -c images_cdn_base_url=https://<your-apprunner-id>.us-east-1.awsapprunner.com/local-images
 > ```
 
 ```bash
 npx cdk deploy magnacms-dev-network magnacms-dev-data -c env=dev \
-  -c cors_origins=https://main.dew27gk9z09jh.amplifyapp.com \
-  -c images_cdn_base_url=https://grsv8u4uit.us-east-1.awsapprunner.com/local-images
+  -c cors_origins=https://<your-app>.amplifyapp.com \
+  -c images_cdn_base_url=https://<your-apprunner-id>.us-east-1.awsapprunner.com/local-images
 ```
 
 ### 3. Populate the OpenAI API key
@@ -180,8 +180,8 @@ your manual change. The only path is:
 cd infra
 npx cdk deploy magnacms-dev-compute --exclusively \
   -c env=dev \
-  -c cors_origins=https://main.dew27gk9z09jh.amplifyapp.com \
-  -c images_cdn_base_url=https://grsv8u4uit.us-east-1.awsapprunner.com/local-images
+  -c cors_origins=https://<your-app>.amplifyapp.com \
+  -c images_cdn_base_url=https://<your-apprunner-id>.us-east-1.awsapprunner.com/local-images
 ```
 
 App Runner force-redeploys when the CDK template changes the env vars.

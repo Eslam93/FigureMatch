@@ -17,8 +17,8 @@
  *
  *   npx cdk deploy --all \
  *     -c env=dev \
- *     -c cors_origins=https://main.dew27gk9z09jh.amplifyapp.com \
- *     -c images_cdn_base_url=https://grsv8u4uit.us-east-1.awsapprunner.com/local-images
+ *     -c cors_origins=https://<your-app>.amplifyapp.com \
+ *     -c images_cdn_base_url=https://<your-apprunner-id>.us-east-1.awsapprunner.com/local-images
  *
  * `cors_origins` accepts a CSV string and lands on App Runner's
  * `CORS_ORIGINS` env var verbatim. `images_cdn_base_url` is the

@@ -10,7 +10,7 @@ A small README + ARCHITECTURE pass to close out the P12 finalization checklist b
 
 ### README §1 stopped lying about the frontend
 
-The "frontend — coming up — Amplify zip awaiting one-click upload" placeholder was still there until this morning. The frontend has been live at `main.dew27gk9z09jh.amplifyapp.com` since the manual Amplify zip upload last night; §1 now reflects that. The seeded-demo description also got an honesty pass: pre-seeded image rows exist in the DB but their PNG bytes are stranded on the Fargate seed-task container disk (cross-container effect of `LocalImageStorage`), so seeded thumbnails 404. The live regen path produces real `gpt-image-1` outputs on the App Runner instance and renders correctly, so the demo flow is "log in, click Generate image" rather than "see pre-seeded thumbnails."
+The "frontend — coming up — Amplify zip awaiting one-click upload" placeholder was still there until this morning. The frontend has been live on Amplify since the manual zip upload last night; §1 now reflects that. The seeded-demo description also got an honesty pass: pre-seeded image rows exist in the DB but their PNG bytes are stranded on the Fargate seed-task container disk (cross-container effect of `LocalImageStorage`), so seeded thumbnails 404. The live regen path produces real `gpt-image-1` outputs on the App Runner instance and renders correctly, so the demo flow is "log in, click Generate image" rather than "see pre-seeded thumbnails."
 
 ### §10 documents the actual deploy flow, not the aspirational one
 

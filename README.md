@@ -10,14 +10,9 @@ A production-minded SaaS demo that helps marketers generate, manage, and improve
 
 ## 1. Live demo
 
-| | |
-|---|---|
-| Frontend | <https://main.dew27gk9z09jh.amplifyapp.com> |
-| Backend API | <https://grsv8u4uit.us-east-1.awsapprunner.com> (health: `/api/v1/health`) |
-| API docs | <https://grsv8u4uit.us-east-1.awsapprunner.com/docs> (Swagger UI — exposed in `local` and `dev` envs only; `staging`/`production` hide `/docs`, `/redoc`, and `/openapi.json`) |
-| Demo credentials | `demo@magnacms.dev` / `DemoPass123` |
+The hosted demo was taken down after the submission window to avoid ongoing AWS charges. The full stack (Amplify static site + App Runner backend + RDS Postgres + Secrets Manager + ECR) is reproducible from scratch via [`infra/DEPLOY.md`](./infra/DEPLOY.md); a local one-command stack runs via `docker compose up` (see §3 below). The demo account is seeded with one brand voice, three content pieces (blog / LinkedIn / email), and one improvement so the dashboard renders real rows immediately on first run.
 
-The demo account is seeded with one brand voice, three content pieces (blog / LinkedIn / email), and one improvement so the dashboard renders real rows immediately. Image regeneration runs live against `gpt-image-1` from the UI's image panel; the seed inserts image rows for completeness but the PNG bytes are stranded on the Fargate seed-task's container disk (see [`infra/DEPLOY.md`](./infra/DEPLOY.md) §6a) — the live-regen path produces real `gpt-image-1` 1024×1024 outputs on the App Runner instance and renders correctly. The S3-backed adapter slated for the next deploy batch removes the cross-container caveat. Re-seed locally with `python -m app.scripts.seed` from `backend/`.
+Demo credentials (local): `demo@magnacms.dev` / `DemoPass123`.
 
 ## For reviewers
 
@@ -304,10 +299,10 @@ python -c "import os, zipfile; root='out'; \
   z = zipfile.ZipFile('magnacms-frontend.zip','w',zipfile.ZIP_DEFLATED); \
   [z.write(os.path.join(d,f), os.path.relpath(os.path.join(d,f), root).replace(os.sep,'/')) \
    for d,_,files in os.walk(root) for f in files]; z.close()"
-CREATE=$(aws amplify create-deployment --app-id dew27gk9z09jh --branch-name main)
+CREATE=$(aws amplify create-deployment --app-id $AMPLIFY_APP_ID --branch-name main)
 ZIP_URL=$(echo "$CREATE" | jq -r '.zipUploadUrl'); JOB_ID=$(echo "$CREATE" | jq -r '.jobId')
 curl -fsS -X PUT --data-binary @magnacms-frontend.zip "$ZIP_URL"
-aws amplify start-deployment --app-id dew27gk9z09jh --branch-name main --job-id "$JOB_ID"
+aws amplify start-deployment --app-id $AMPLIFY_APP_ID --branch-name main --job-id "$JOB_ID"
 ```
 
 Once the OIDC role is wired, `deploy.yml` (manual or push-triggered) supersedes both of the above.

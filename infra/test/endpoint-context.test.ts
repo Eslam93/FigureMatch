@@ -12,9 +12,8 @@ import {
   resolveEndpointContext,
 } from "../lib/endpoint-context";
 
-const validCors = "https://main.dew27gk9z09jh.amplifyapp.com";
-const validImages =
-  "https://grsv8u4uit.us-east-1.awsapprunner.com/local-images";
+const validCors = "https://app.example.com";
+const validImages = "https://api.example.com/local-images";
 
 describe("resolveEndpointContext — happy path", () => {
   it("accepts a single https origin and a trailing-slash-stripped image base URL", () => {
