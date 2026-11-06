@@ -64,7 +64,9 @@ Steady-state monthly figures for the dev stack as currently deployed (us-east-1,
 | ElastiCache | **Deferred to Phase 11** | $0 |
 | CloudFront | **Deferred to Phase 5** (images served via App Runner's `/local-images` until then) | $0 |
 | **Total AWS** | | **~$70/month** |
-| **OpenAI** (separate budget) | `gpt-5.4-mini` ~$0.005 per content piece, `gpt-image-1` medium ~$0.04 per image | ~$3–8/active week |
+| **OpenAI** (separate budget) | `gpt-5.4-mini`: $0.75 input / $0.075 cached input / $4.50 output per 1M tokens; `gpt-image-1` medium ~$0.04 per image | Usage-based (see note) |
+
+**OpenAI note:** the earlier per-content-piece (~$0.005) and per-week (~$3–8) OpenAI estimates were calculated from an incorrect `gpt-5.4-mini` price table, so they were removed rather than re-estimated. Each text call's cost is now computed from the token counts the API reports, at the dated rates in [`backend/app/core/model_catalog.py`](./backend/app/core/model_catalog.py) (verified 2026-11-06).
 
 The two largest dev-stack line items (App Runner at always-on, RDS at `db.t4g.micro`) are both intentional trade-offs. App Runner's min=1 keeps cold-start latency off the demo path; scale-to-zero would save ~$45/mo but make the first request after idle period unusable (~10s cold boot). The RDS public endpoint is gated by `rds.force_ssl=1` + a strong auto-generated password (see decision #3 above); private subnet + RDS Proxy is the production-grade configuration and adds ~$15–25/mo in NAT + Proxy charges.
 

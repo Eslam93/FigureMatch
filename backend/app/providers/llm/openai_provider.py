@@ -4,13 +4,16 @@ Wraps the async `openai` SDK with:
   - structured-output mode via `response_format: json_schema, strict=True`
     when the caller supplies a schema
   - exponential-backoff retry on 429 + 5xx + network timeout
-  - per-call cost computation from a static price table
+  - per-call cost computation from `app.core.model_catalog`, with cached
+    prompt tokens billed at the cached-input rate
   - structured logging of model, tokens, cost, latency, finish_reason
 
-The price table lives at module scope; update it when OpenAI changes
-pricing. Misses (unknown model) fall through to `0.0` and log a warning
-rather than crash — billing surprise is preferable to a generation
-failure.
+Pricing looks up the snapshot the API reports (`response.model`) first,
+then the configured model, so a new snapshot id never fails a call that
+has already been paid for. If neither is priced, `local` logs a warning
+and records zero cost (a dev experimenting with a new model id isn't
+blocked); every other environment raises `ProviderConfigError`, because
+silently losing cost accounting is worse than refusing to serve.
 """
 
 from __future__ import annotations
@@ -23,6 +26,7 @@ from typing import Any, Final
 import openai
 from openai import AsyncOpenAI
 
+from app.core import model_catalog
 from app.core.config import Environment, get_settings
 from app.core.logging import get_logger
 from app.providers.errors import ProviderConfigError, ProviderError, ProviderRetryExhausted
@@ -30,33 +34,69 @@ from app.providers.llm.base import LLMResult
 
 log = get_logger(__name__)
 
-# USD per 1M tokens, as published. Hand-maintained — review when
-# OpenAI announces pricing changes. In `local`, unknown models log a
-# warning and fall through to zero (so a dev experimenting with a new
-# model id doesn't get blocked). In any other env, an unknown model
-# is a misconfiguration: silently losing cost accounting is worse than
-# refusing to serve.
-_PRICE_PER_MILLION_TOKENS: Final[dict[str, tuple[float, float]]] = {
-    # (input, output) per 1M tokens
-    "gpt-5.4-mini-2026-03-17": (0.15, 0.60),
-    "gpt-5.4-mini": (0.15, 0.60),
-}
+
+def _cached_prompt_tokens(usage: Any, prompt_tokens: int) -> int:
+    """Prompt tokens served from OpenAI's prompt cache, clamped to
+    `[0, prompt_tokens]`. Both `usage.prompt_tokens_details` and its
+    `cached_tokens` field are optional; anything missing counts as zero."""
+    details = getattr(usage, "prompt_tokens_details", None)
+    cached = getattr(details, "cached_tokens", None)
+    if not isinstance(cached, int):
+        return 0
+    return max(0, min(cached, prompt_tokens))
 
 
-def _compute_cost_usd(model: str, input_tokens: int, output_tokens: int) -> float:
-    pricing = _PRICE_PER_MILLION_TOKENS.get(model)
+def _resolve_pricing(
+    response_model: str, configured_model: str
+) -> model_catalog.TextPricing | None:
+    pricing = model_catalog.text_pricing(response_model)
+    if pricing is not None:
+        return pricing
+    fallback = model_catalog.text_pricing(configured_model)
+    if fallback is not None:
+        log.warning(
+            "openai_response_model_unpriced",
+            response_model=response_model,
+            configured_model=configured_model,
+        )
+    return fallback
+
+
+def _compute_cost_usd(
+    response_model: str,
+    configured_model: str,
+    *,
+    input_tokens: int,
+    cached_input_tokens: int,
+    output_tokens: int,
+) -> float:
+    """USD cost of one completion.
+
+    `input_tokens` is the whole prompt; `cached_input_tokens` is the part
+    of it billed at the cached rate (0 <= cached <= input).
+    """
+    pricing = _resolve_pricing(response_model, configured_model)
     if pricing is None:
         if get_settings().environment != Environment.LOCAL:
             raise ProviderConfigError(
-                f"No pricing entry for model={model!r}. Update "
-                "_PRICE_PER_MILLION_TOKENS before deploying with this model — "
+                f"No pricing entry for model={response_model!r} (configured "
+                f"{configured_model!r}). Add it to app/core/model_catalog.py "
+                "with verified prices before deploying with this model — "
                 "silently losing cost accounting in non-local environments "
                 "is worse than refusing to serve."
             )
-        log.warning("openai_unknown_model_pricing_local_only", model=model)
+        log.warning(
+            "openai_unknown_model_pricing_local_only",
+            model=response_model,
+            configured_model=configured_model,
+        )
         return 0.0
-    input_price, output_price = pricing
-    return (input_tokens * input_price + output_tokens * output_price) / 1_000_000
+    uncached_input_tokens = input_tokens - cached_input_tokens
+    return (
+        uncached_input_tokens * pricing.input_per_million
+        + cached_input_tokens * pricing.cached_input_per_million
+        + output_tokens * pricing.output_per_million
+    ) / 1_000_000
 
 
 # Retry policy. The brief specifies max 3 attempts on 5xx/429; we
@@ -205,13 +245,21 @@ class OpenAIChatProvider:
         usage = response.usage
         input_tokens = usage.prompt_tokens if usage is not None else 0
         output_tokens = usage.completion_tokens if usage is not None else 0
-        cost_usd = _compute_cost_usd(response.model, input_tokens, output_tokens)
+        cached_input_tokens = _cached_prompt_tokens(usage, input_tokens)
+        cost_usd = _compute_cost_usd(
+            response.model,
+            self._model,
+            input_tokens=input_tokens,
+            cached_input_tokens=cached_input_tokens,
+            output_tokens=output_tokens,
+        )
 
         log.info(
             "openai_chat_completion",
             model=response.model,
             content_type=content_type,
             input_tokens=input_tokens,
+            cached_input_tokens=cached_input_tokens,
             output_tokens=output_tokens,
             cost_usd=round(cost_usd, 6),
             latency_ms=elapsed_ms,
