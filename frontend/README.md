@@ -17,7 +17,7 @@ Protected (gated by the `(protected)` route group):
 - `/generate` — content generation form (blog post / LinkedIn post / email / ad copy) with staged loader
 - `/improve` — analyze → rewrite chain with side-by-side diff and "what changed" rationale
 - `/brand-voices` — CRUD for style presets that inject into generation prompts
-- `/usage`, `/settings` — read-only surfaces for account info and usage data
+- `/settings` — read-only account details
 
 ## Local commands
 
@@ -70,7 +70,6 @@ frontend/
 │   │   ├── generate/page.tsx
 │   │   ├── improve/page.tsx
 │   │   ├── brand-voices/page.tsx
-│   │   ├── usage/page.tsx
 │   │   └── settings/page.tsx
 │   ├── layout.tsx             # root layout with <Providers>
 │   ├── page.tsx               # landing
@@ -97,4 +96,4 @@ frontend/
 
 ## Testing
 
-Unit + component tests live in [`tests/`](./tests). They mock the API hooks at the module level and exercise components in isolation. Run with `pnpm test`; CI runs the same. Playwright E2E is on the backlog ([#86](https://github.com/Eslam93/MagnaCMS/issues/86)) but not wired yet — for end-to-end smoke today, the live demo URL is the integration test.
+Unit + component tests live in [`tests/`](./tests). They mock the API hooks at the module level and exercise components in isolation. Run with `pnpm test`; CI runs the same. Playwright E2E is on the backlog ([#86](https://github.com/Eslam93/MagnaCMS/issues/86)) but not wired yet.

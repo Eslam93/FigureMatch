@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, LayoutDashboard, Mic, PenSquare, Settings, Sparkles } from "lucide-react";
+import { LayoutDashboard, Mic, PenSquare, Settings, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Route } from "next";
@@ -21,7 +21,6 @@ export const NAV_ITEMS: ReadonlyArray<{
   { href: "/generate", label: "Generate", icon: Sparkles },
   { href: "/improve", label: "Improve", icon: PenSquare },
   { href: "/brand-voices", label: "Brand voices", icon: Mic },
-  { href: "/usage", label: "Usage", icon: FileText },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
