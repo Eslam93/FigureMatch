@@ -11,6 +11,7 @@ catalog suggests another.
 Prices are OpenAI's standard tier, in USD per 1M tokens.
 
 Consumers:
+  - `app.core.config` refuses shut-down or unpriced models at boot;
   - the OpenAI chat and image providers price every call from here.
 
 This module must stay free of `app.core.config` and `app.providers`
