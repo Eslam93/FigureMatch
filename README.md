@@ -154,7 +154,7 @@ internet (see [`app/main.py`](./backend/app/main.py)).
 | Images | `POST /content/:id/image` (generate or regenerate), `GET /content/:id/images` (every version, newest first) |
 | Improver | `POST /improve` (analyze → rewrite), `GET /improvements`, `GET /improvements/:id`, `DELETE /improvements/:id` |
 | Brand voices | `GET /brand-voices`, `POST /brand-voices`, `GET /brand-voices/:id`, `PATCH /brand-voices/:id`, `DELETE /brand-voices/:id` |
-| System | `GET /health` (always on); `GET /openapi.json`, `GET /docs`, `GET /redoc` (local/dev only — gated in `app/main.py`) |
+| System | `GET /health`, `GET /meta` (always on); `GET /openapi.json`, `GET /docs`, `GET /redoc` (local/dev only — gated in `app/main.py`) |
 
 ### Planned
 
