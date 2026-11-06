@@ -11,6 +11,9 @@ on:
       - 'frontend/**'
       - '.github/workflows/frontend-ci.yml'
 
+permissions:
+  contents: read
+
 concurrency:
   group: frontend-ci-${{ github.ref }}
   cancel-in-progress: true
@@ -33,7 +36,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'pnpm'
           cache-dependency-path: frontend/pnpm-lock.yaml
 
@@ -52,5 +55,14 @@ jobs:
       - name: Unit tests (Vitest)
         run: pnpm test
 
-      - name: Next.js build
+      - name: Next.js build (static export)
+        # Deploys ship the static export (README §10), so CI builds that.
+        env:
+          NEXT_OUTPUT: export
         run: pnpm build
+
+      - name: Check the static export
+        run: |
+          for page in out/index.html out/404.html; do
+            test -f "$page" || { echo "::error::$page is missing from the static export"; exit 1; }
+          done

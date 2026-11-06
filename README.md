@@ -232,7 +232,7 @@ pnpm lint
 pnpm format:check                       # format gate (CI fails if dirty)
 pnpm typecheck
 pnpm test
-pnpm build                              # next build must succeed
+NEXT_OUTPUT=export pnpm build           # static export build, as CI runs it
 
 # Infra — mirrors infra-ci.yml exactly
 cd infra
@@ -319,7 +319,7 @@ Once the OIDC role is wired, `deploy.yml` (manual or push-triggered) supersedes 
 | Workflow | Triggers on | Runs |
 |---|---|---|
 | [`backend-ci`](./.github/workflows/backend-ci.yml) | `backend/**` changes | uv sync, ruff, mypy, alembic upgrade, pytest |
-| [`frontend-ci`](./.github/workflows/frontend-ci.yml) | `frontend/**` changes | pnpm install, lint, prettier, tsc, vitest, next build |
+| [`frontend-ci`](./.github/workflows/frontend-ci.yml) | `frontend/**` changes | pnpm install, lint, prettier, tsc, vitest, next build (static export) |
 | [`infra-ci`](./.github/workflows/infra-ci.yml) | `infra/**` changes | npm ci, jest snapshots, `cdk synth --all -c env=dev` |
 | [`model-lifecycle`](./.github/workflows/model-lifecycle.yml) | Weekly (Mon 06:17 UTC), manual, and PRs touching the model catalog, the check script or `config.py` | `python -m app.scripts.check_model_lifecycle`: fails if a configured OpenAI model is unknown, unpriced, shut down, shutting down within 30 days, or listed on OpenAI's deprecations page |
 
