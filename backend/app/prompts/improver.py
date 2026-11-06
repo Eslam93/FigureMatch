@@ -221,15 +221,15 @@ def build_rewrite(
     return REWRITE_SYSTEM_PROMPT, user_prompt
 
 
+# Both follow the note that says what was wrong with the previous reply
+# (`app/services/corrective_retry.py`), so they don't claim a cause themselves.
 CORRECTIVE_RETRY_INSTRUCTION_ANALYZE: Final[str] = (
-    "Your previous response was not valid JSON matching the required "
-    "schema. Return ONLY valid JSON with keys issues, planned_changes. "
+    "Return ONLY valid JSON with keys issues, planned_changes. "
     "No preamble, no markdown fencing, no explanation."
 )
 
 CORRECTIVE_RETRY_INSTRUCTION_REWRITE: Final[str] = (
-    "Your previous response was not valid JSON matching the required "
-    "schema. Return ONLY valid JSON with keys improved_text, "
+    "Return ONLY valid JSON with keys improved_text, "
     "explanation, changes_summary. No preamble, no markdown fencing, "
     "no explanation."
 )

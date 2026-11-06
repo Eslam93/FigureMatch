@@ -89,9 +89,10 @@ def build_prompt(
     return SYSTEM_PROMPT, user_prompt
 
 
+# Follows the note that says what was wrong with the previous reply
+# (`app/services/corrective_retry.py`), so it doesn't claim a cause itself.
 CORRECTIVE_RETRY_INSTRUCTION: Final[str] = (
-    "Your previous response was not valid JSON matching the required "
-    "schema. Return ONLY valid JSON with keys subject, preview_text, "
+    "Return ONLY valid JSON with keys subject, preview_text, "
     "greeting, body, cta_text, sign_off. No preamble, no markdown "
     "fencing, no explanation."
 )

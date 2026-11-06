@@ -11,9 +11,10 @@ The fallback is non-negotiable (PROJECT_BRIEF §7.0):
 
   1. Attempt 1 — call provider with strict json_schema. Pydantic-validate.
                  Status = OK on success.
-  2. Attempt 2 — on parse/validation failure, re-call without json_schema,
-                 appending a corrective instruction. Status = RETRIED on
-                 success.
+  2. Attempt 2 — on parse/validation failure, re-call with the same strict
+                 json_schema, showing the model its reply and naming what
+                 failed (invalid JSON, or each failing field with
+                 Pydantic's message). Status = RETRIED on success.
   3. Attempt 3 — on second failure, persist the raw model output as
                  `rendered_text` with `result = None`,
                  `result_parse_status = FAILED`. Sentry-warn so we notice
@@ -25,14 +26,12 @@ Aggregate token usage from both calls; cost is the sum of both
 
 from __future__ import annotations
 
-import json
 from collections.abc import Callable
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
 from pydantic import BaseModel
-from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError
@@ -55,6 +54,7 @@ from app.schemas.content import (
     LinkedInPostResult,
 )
 from app.services.brand_voice_service import render_brand_voice_block
+from app.services.corrective_retry import ParseFailure, corrective_user_prompt, parse_reply
 from app.services.renderers import (
     render_ad_copy,
     render_blog_post,
@@ -164,12 +164,13 @@ class _ParseOutcome:
 
     Either `result` is populated (OK or RETRIED — `rendered_text` is the
     canonical render of `result`), or it's None (FAILED — `rendered_text`
-    is the raw model output verbatim).
+    is the raw model output verbatim and `failure` says what was wrong).
     """
 
     result: ContentResult | None
     rendered_text: str
     status: ResultParseStatus
+    failure: ParseFailure | None = None
 
 
 # ── service ────────────────────────────────────────────────────────────
@@ -224,7 +225,7 @@ class ContentService:
         model_id = attempt1.model
 
         # --- Attempt 2: corrective retry ---
-        if outcome.result is None:
+        if outcome.failure is not None:
             log.warning(
                 "content_parse_failed_attempt_1",
                 content_type=request.content_type.value,
@@ -235,6 +236,8 @@ class ContentService:
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
                 previous_raw=attempt1.raw_text,
+                failure=outcome.failure,
+                json_schema=bundle.json_schema["schema"],
                 content_type=request.content_type,
                 corrective_instruction=bundle.corrective_retry_instruction,
             )
@@ -322,24 +325,17 @@ class ContentService:
     ) -> _ParseOutcome:
         """Parse raw text as JSON and validate against `result_model`.
 
-        On any failure return an outcome with `result=None` and the raw
-        text preserved — the caller decides whether to retry or degrade.
+        On any failure return an outcome with `result=None`, the raw text
+        preserved and the failure described — the caller decides whether
+        to retry or degrade.
         """
-        try:
-            payload = json.loads(raw)
-        except json.JSONDecodeError:
+        parsed = parse_reply(raw, result_model)
+        if isinstance(parsed, ParseFailure):
             return _ParseOutcome(
                 result=None,
                 rendered_text=raw,
                 status=ResultParseStatus.FAILED,
-            )
-        try:
-            parsed = result_model.model_validate(payload)
-        except PydanticValidationError:
-            return _ParseOutcome(
-                result=None,
-                rendered_text=raw,
-                status=ResultParseStatus.FAILED,
+                failure=parsed,
             )
         # The narrow union return type is enforced by the registry: the
         # only models in `_REGISTRY` are members of `ContentResult`.
@@ -355,26 +351,27 @@ class ContentService:
         system_prompt: str,
         user_prompt: str,
         previous_raw: str,
+        failure: ParseFailure,
+        json_schema: dict[str, Any],
         content_type: ContentType,
         corrective_instruction: str,
     ) -> LLMResult:
-        """Second-pass call that re-emphasizes valid JSON.
+        """Second-pass call that says what was wrong with the first reply.
 
-        We feed the prior raw response back into the user prompt so the
-        model can see what it sent and correct course. `json_schema` is
-        intentionally NOT passed: stage-2 is a free-form retry whose
-        instructions live in plain text. If the model could not produce
-        schema-conforming JSON under strict mode, asking again under
-        strict mode tends to fail the same way.
+        We feed the prior raw response back into the user prompt, with a
+        note naming what failed, so the model can see what it sent and
+        correct course. Strict `json_schema` stays on: the usual first-pass
+        failure is a limit the schema can't express (a field's length),
+        and dropping strict mode only let the retry return any shape.
         """
-        retry_user_prompt = (
-            f"{user_prompt}\n\n"
-            f"Previous response (invalid):\n{previous_raw}\n\n"
-            f"{corrective_instruction}"
-        )
         return await self._provider.generate(
             system_prompt=system_prompt,
-            user_prompt=retry_user_prompt,
-            json_schema=None,
+            user_prompt=corrective_user_prompt(
+                user_prompt=user_prompt,
+                previous_reply=previous_raw,
+                failure=failure,
+                instruction=corrective_instruction,
+            ),
+            json_schema=json_schema,
             content_type=content_type.value,
         )

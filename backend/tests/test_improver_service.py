@@ -16,6 +16,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from app.db.enums import ImprovementGoal
+from app.prompts import improver as improver_prompt
 from app.providers.llm.base import LLMResult
 from app.schemas.improvement import ImproveRequest
 from app.services.improver_service import ImproverService
@@ -158,6 +159,58 @@ async def test_rewrite_total_failure_degrades_with_fallback_summary() -> None:
     assert record.improved_text == "still bad"
     assert any("fallback mode" in line for line in record.explanation)
     assert record.changes_summary["length_change_pct"] == 0.0
+
+
+@pytest.mark.asyncio
+async def test_analyze_retry_keeps_strict_schema_and_names_the_failing_field() -> None:
+    not_a_list = json.dumps({"issues": "Buries the lede.", "planned_changes": ["Lead with it."]})
+    session = _RecordingSession()
+    provider = _llm_with([not_a_list, _VALID_ANALYZE, _VALID_REWRITE])
+    service = ImproverService(session, provider)  # type: ignore[arg-type]  # duck-typed fakes
+
+    await service.improve(user=_user(), request=_request())
+
+    _, retry = provider.generate.call_args_list[1]
+    assert retry["content_type"] == "improver_analysis"
+    assert retry["json_schema"] == improver_prompt.ANALYZE_JSON_SCHEMA["schema"]
+    assert "- issues: Input should be a valid list" in retry["user_prompt"]
+    assert "not valid JSON" not in retry["user_prompt"]
+    # The retried plan is the one the rewriter executes.
+    _, rewrite = provider.generate.call_args_list[2]
+    assert "- Move the strongest claim first." in rewrite["user_prompt"]
+
+
+@pytest.mark.asyncio
+async def test_rewrite_retry_keeps_strict_schema_and_names_the_failing_field() -> None:
+    empty_text = json.dumps({**json.loads(_VALID_REWRITE), "improved_text": ""})
+    session = _RecordingSession()
+    provider = _llm_with([_VALID_ANALYZE, empty_text, _VALID_REWRITE])
+    service = ImproverService(session, provider)  # type: ignore[arg-type]  # duck-typed fakes
+
+    record = await service.improve(user=_user(), request=_request())
+
+    assert record.improved_text.startswith("An improved piece")
+    _, retry = provider.generate.call_args_list[2]
+    assert retry["content_type"] == "improver_rewrite"
+    assert retry["json_schema"] == improver_prompt.REWRITE_JSON_SCHEMA["schema"]
+    assert "- improved_text: String should have at least 1 character" in retry["user_prompt"]
+    assert "not valid JSON" not in retry["user_prompt"]
+
+
+@pytest.mark.asyncio
+async def test_analyze_reply_stays_lenient_about_extra_keys_and_item_types() -> None:
+    """Behaviour the hand-written analyze parser had: unknown keys are
+    ignored and non-string items are kept as strings, with no retry."""
+    loose = json.dumps({"issues": ["Too long."], "planned_changes": [42], "notes": "extra"})
+    session = _RecordingSession()
+    provider = _llm_with([loose, _VALID_REWRITE])
+    service = ImproverService(session, provider)  # type: ignore[arg-type]  # duck-typed fakes
+
+    await service.improve(user=_user(), request=_request())
+
+    assert provider.generate.await_count == 2
+    _, rewrite = provider.generate.call_args_list[1]
+    assert "- 42" in rewrite["user_prompt"]
 
 
 @pytest.mark.asyncio

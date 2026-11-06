@@ -21,9 +21,12 @@ from unittest.mock import AsyncMock
 import pytest
 
 from app.db.enums import ContentType, ResultParseStatus
+from app.prompts import blog_post as blog_post_prompt
 from app.providers.llm.base import LLMResult
+from app.providers.llm.openai_provider import OpenAIChatProvider
 from app.schemas.content import GenerateRequest
 from app.services.content_service import ContentService
+from tests.scripted_openai import ScriptedUpstream, chat_completion
 
 # ── fakes ──────────────────────────────────────────────────────────────
 
@@ -189,9 +192,11 @@ async def test_attempt_2_corrective_retry_status_retried(content_type: ContentTy
     assert piece.input_tokens == 10
     assert piece.output_tokens == 14
     assert piece.cost_usd == Decimal("0.02")
-    # Retry call should not pass json_schema (per service contract).
-    _, second_kwargs = provider.generate.call_args_list[1]
-    assert second_kwargs["json_schema"] is None
+    # The retry keeps the first call's strict json_schema and says what failed.
+    (_, first_kwargs), (_, second_kwargs) = provider.generate.call_args_list
+    assert second_kwargs["json_schema"] is not None
+    assert second_kwargs["json_schema"] == first_kwargs["json_schema"]
+    assert "The previous reply was not valid JSON." in second_kwargs["user_prompt"]
 
 
 @pytest.mark.asyncio
@@ -269,7 +274,7 @@ async def test_prompt_version_pinned_per_content_type(
 @pytest.mark.asyncio
 async def test_attempt_1_sends_strict_json_schema_for_each_type() -> None:
     """First-pass call always carries the per-type strict json_schema
-    payload — the retry path is the only place it's omitted."""
+    payload; the corrective retry reuses it."""
     session = _RecordingSession()
     provider = _fake_provider([_valid_json(ContentType.LINKEDIN_POST)])
     service = ContentService(session, provider)  # type: ignore[arg-type]
@@ -282,3 +287,90 @@ async def test_attempt_1_sends_strict_json_schema_for_each_type() -> None:
     # LinkedIn schema's required keys are the discriminator we can
     # check without coupling to the exact dict identity.
     assert set(schema["required"]) == {"hook", "body", "cta", "hashtags"}
+
+
+# ── corrective retry: strict schema, failing field named ───────────────
+
+# One character over `BlogPostResult.meta_description`'s 160-character limit,
+# which strict json_schema can't express, so a strict reply can still break it.
+_TOO_LONG_META = "m" * 161
+
+
+def _blog_reply(**overrides: Any) -> str:
+    return json.dumps({**_VALID_PAYLOADS[ContentType.BLOG_POST], **overrides})
+
+
+@pytest.mark.asyncio
+async def test_corrective_retry_keeps_strict_schema_and_names_the_failing_field() -> None:
+    session = _RecordingSession()
+    provider = _fake_provider(
+        [_blog_reply(meta_description=_TOO_LONG_META), _valid_json(ContentType.BLOG_POST)]
+    )
+    service = ContentService(session, provider)  # type: ignore[arg-type]  # duck-typed fakes
+
+    piece = await service.generate(user=_user(), request=_request())
+
+    assert piece.result_parse_status == ResultParseStatus.RETRIED
+    assert piece.result == _VALID_PAYLOADS[ContentType.BLOG_POST]
+    assert piece.rendered_text.startswith("# Mocks in CI\n")
+    _, retry = provider.generate.call_args_list[1]
+    assert retry["json_schema"] == blog_post_prompt.JSON_SCHEMA["schema"]
+    assert "- meta_description: String should have at most 160 characters" in retry["user_prompt"]
+    assert "not valid JSON" not in retry["user_prompt"]
+    # The rejected value is in the echoed reply only, never in the note.
+    assert retry["user_prompt"].count(_TOO_LONG_META) == 1
+
+
+@pytest.mark.asyncio
+async def test_corrective_retry_that_fails_again_degrades_exactly_as_before() -> None:
+    session = _RecordingSession()
+    second_reply = _blog_reply(title="Second try", meta_description=_TOO_LONG_META)
+    provider = _fake_provider([_blog_reply(meta_description=_TOO_LONG_META), second_reply])
+    service = ContentService(session, provider)  # type: ignore[arg-type]  # duck-typed fakes
+
+    piece = await service.generate(user=_user(), request=_request())
+
+    assert piece.result_parse_status == ResultParseStatus.FAILED
+    assert piece.result is None
+    assert piece.rendered_text == second_reply
+    assert piece.input_tokens == 10
+    assert piece.output_tokens == 14
+    assert piece.cost_usd == Decimal("0.02")
+    assert provider.generate.await_count == 2
+    _, retry = provider.generate.call_args_list[1]
+    assert retry["json_schema"] == blog_post_prompt.JSON_SCHEMA["schema"]
+
+
+@pytest.mark.asyncio
+async def test_corrective_retry_reaches_openai_as_a_strict_structured_output_request() -> None:
+    """The same retry through the real OpenAI provider, on scripted HTTP:
+    the second request still asks for strict json_schema output."""
+    upstream = ScriptedUpstream(
+        chat_completion(_blog_reply(meta_description=_TOO_LONG_META)),
+        chat_completion(_valid_json(ContentType.BLOG_POST)),
+    )
+    provider = OpenAIChatProvider(
+        client=upstream.client(), model="gpt-5.4-mini-2026-03-17", max_retries=1
+    )
+    session = _RecordingSession()
+    service = ContentService(session, provider)  # type: ignore[arg-type]  # duck-typed session
+
+    piece = await service.generate(user=_user(), request=_request())
+
+    assert piece.result_parse_status == ResultParseStatus.RETRIED
+    assert len(upstream.requests) == 2
+    retry_body = json.loads(upstream.requests[1].content)
+    assert retry_body["response_format"] == {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "blog_post",
+            "schema": blog_post_prompt.JSON_SCHEMA["schema"],
+            "strict": True,
+        },
+    }
+    retry_user_message = retry_body["messages"][1]
+    assert retry_user_message["role"] == "user"
+    assert (
+        "- meta_description: String should have at most 160 characters"
+        in retry_user_message["content"]
+    )
