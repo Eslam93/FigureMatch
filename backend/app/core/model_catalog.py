@@ -12,7 +12,9 @@ Prices are OpenAI's standard tier, in USD per 1M tokens.
 
 Consumers:
   - `app.core.config` refuses shut-down or unpriced models at boot;
-  - the OpenAI chat and image providers price every call from here.
+  - the OpenAI chat and image providers price every call from here;
+  - `app.scripts.check_model_lifecycle` flags a configured model before
+    its shutdown date, weekly in CI.
 
 This module must stay free of `app.core.config` and `app.providers`
 imports: both of those import it, so anything else would be a cycle.
