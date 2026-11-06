@@ -41,6 +41,8 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql+asyncpg://app:app@localhost:5432/app
+      # Fail, rather than skip, the integration suite if Postgres is unreachable.
+      REQUIRE_DB: "1"
     steps:
       - uses: actions/checkout@v4
 

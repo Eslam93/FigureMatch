@@ -26,9 +26,9 @@ if TYPE_CHECKING:
 def _make_service_with_mocks(monkeypatch: MonkeyPatch) -> tuple[AuthService, MagicMock, MagicMock]:
     """Return an AuthService whose two repositories are AsyncMocks.
 
-    The session passed to AuthService is itself a MagicMock — none of its
-    methods are exercised in these tests because every call routes through
-    the mocked repositories.
+    The session passed to AuthService is itself a MagicMock, since every
+    query routes through the mocked repositories. Its `commit` is an
+    AsyncMock because reuse detection commits the revocation itself.
     """
     fake_users = MagicMock()
     fake_refresh = MagicMock()
@@ -54,7 +54,9 @@ def _make_service_with_mocks(monkeypatch: MonkeyPatch) -> tuple[AuthService, Mag
         "app.services.auth_service.RefreshTokenRepository",
         lambda _session: fake_refresh,
     )
-    service = AuthService(MagicMock())
+    session = MagicMock()
+    session.commit = AsyncMock()
+    service = AuthService(session)
     return service, fake_users, fake_refresh
 
 
@@ -99,6 +101,9 @@ async def test_refresh_reuse_triggers_family_revocation(monkeypatch: MonkeyPatch
 
     assert exc_info.value.code == "INVALID_REFRESH_TOKEN"
     refresh_repo.revoke_all_for_user.assert_awaited_once_with(user_id)
+    # Committed before the 401: the request's rollback-on-error would
+    # otherwise undo the revocation.
+    service._session.commit.assert_awaited_once()
 
 
 async def test_refresh_unknown_token_does_not_revoke_family(monkeypatch: MonkeyPatch) -> None:

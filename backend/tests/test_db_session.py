@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 import pytest
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
+from app.core.config import get_settings
 from app.db import session as session_mod
 
 if TYPE_CHECKING:
@@ -20,12 +21,18 @@ if TYPE_CHECKING:
 @pytest.fixture(autouse=True)
 def _reset_db_singletons() -> None:
     """Wipe the module-level engine/sessionmaker before and after each test
-    so tests are order-independent."""
+    so tests are order-independent.
+
+    Each test also caches `get_settings()` with a DATABASE_URL that points
+    nowhere. Monkeypatch restores the env var but not that cache, so the
+    teardown clears it too; otherwise a later integration engine would use
+    the dead URL and, with REQUIRE_DB=1, fail the whole integration suite."""
     session_mod._engine = None
     session_mod._sessionmaker = None
     yield
     session_mod._engine = None
     session_mod._sessionmaker = None
+    get_settings.cache_clear()
 
 
 def test_get_engine_returns_async_engine(monkeypatch: MonkeyPatch) -> None:

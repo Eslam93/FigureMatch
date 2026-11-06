@@ -206,12 +206,15 @@ locally before pushing to avoid the "tests passed locally but CI failed
 on prettier" trap:
 
 ```bash
-# Backend — mirrors backend-ci.yml exactly
+# Backend — mirrors backend-ci.yml exactly (needs Postgres at DATABASE_URL)
 cd backend
+uv sync --frozen
 uv run ruff check .
 uv run ruff format --check .            # format gate (CI fails if dirty)
 uv run mypy app
-uv run pytest --cov=app --cov-fail-under=80   # 80% coverage gate
+uv run alembic upgrade head
+# REQUIRE_DB=1 fails the integration tests, instead of skipping them, if Postgres is unreachable
+REQUIRE_DB=1 uv run pytest --cov=app --cov-fail-under=80   # 80% coverage gate
 # OpenAPI spec must be consumable by the frontend's codegen:
 uv run python -c "import json; from app.main import app; \
   json.dump(app.openapi(), open('openapi-tmp.json', 'w'))"
