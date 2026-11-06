@@ -32,10 +32,10 @@ def stub_dependency_probes(monkeypatch: MonkeyPatch) -> None:
 async def client() -> AsyncIterator[AsyncClient]:
     """An httpx AsyncClient bound directly to the ASGI app (in-process).
 
-    `raise_app_exceptions=False` makes ASGITransport convert unhandled app
-    exceptions to 500 responses rather than re-raising them into the test —
-    matches real wire behavior, and lets us assert on the {error, meta}
-    envelope produced by our catch-all Exception handler.
+    `raise_app_exceptions=False` makes ASGITransport return a 500 rather
+    than re-raise an exception that escapes the app into the test, which
+    matches real wire behavior. Route exceptions don't escape:
+    `UnhandledErrorMiddleware` turns them into the {error, meta} envelope.
     """
     async with AsyncClient(
         transport=ASGITransport(app=app, raise_app_exceptions=False),

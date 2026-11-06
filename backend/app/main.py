@@ -27,12 +27,24 @@ below reads outer-to-inner along the request path:
                                     rate-limit identity until P11.x).
                                     Position INSIDE SecurityHeaders +
                                     RequestID so 429 responses carry both.
-  6. AccessLog (first added, innermost) — reads the bound request_id from
-     the contextvar so every log line carries it.
-  7. Exception handlers           — consistent {error, meta} envelope on
-                                    every failure path; runs inside the
-                                    middleware stack.
-  8. v1 router                    — mounted at /api/v1.
+  6. AccessLog                    — reads the bound request_id from the
+                                    contextvar so every log line carries
+                                    it. OUTSIDE UnhandledErrors, so an
+                                    unhandled 500 is logged once, as a
+                                    completed request with status 500.
+  7. UnhandledErrors (first added, innermost) — turns an exception the app
+     raises into the INTERNAL_ERROR envelope while still INSIDE RequestID
+     + SecurityHeaders, so the 500 carries `request_id`, X-Request-ID and
+     the security headers. Logs it as `unhandled_exception`.
+  8. Exception handlers           — AppException, HTTPException and
+                                    validation errors get the {error, meta}
+                                    envelope here, inside every middleware.
+                                    The `Exception` handler is the odd one
+                                    out: Starlette runs it in its own
+                                    ServerErrorMiddleware, OUTSIDE all of
+                                    the above, so it is only a last resort
+                                    for an exception a middleware raises.
+  9. v1 router                    — mounted at /api/v1.
 """
 
 from __future__ import annotations
@@ -60,6 +72,7 @@ from app.middleware.logging import AccessLogMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware, RateLimitRule
 from app.middleware.request_id import REQUEST_ID_HEADER, RequestIDMiddleware
 from app.middleware.security_headers import SecurityHeadersMiddleware
+from app.middleware.unhandled_errors import UnhandledErrorMiddleware
 from app.services.image_storage import LOCAL_IMAGES_DIR
 
 # Per-path requests-per-minute caps. /auth/login + /auth/register are
@@ -151,7 +164,8 @@ def create_app() -> FastAPI:
 
     # Add middleware INNER-MOST first so the LAST-added one wraps outside
     # everything else (Starlette's documented ordering).
-    app.add_middleware(AccessLogMiddleware)  # innermost — runs last on the way out
+    app.add_middleware(UnhandledErrorMiddleware)  # innermost — 500s pass back through the rest
+    app.add_middleware(AccessLogMiddleware)  # outside UnhandledErrors — logs the 500's status
     app.add_middleware(
         RateLimitMiddleware,
         rules=_AUTH_RATE_LIMITS,

@@ -190,8 +190,8 @@ async def validation_exception_handler(
     )
 
 
-async def unhandled_exception_handler(_: Request, exc: Exception) -> JSONResponse:
-    log.exception("unhandled_exception", error=str(exc))
+def internal_error_response() -> JSONResponse:
+    """The generic 500 envelope. Never carries the exception's text."""
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content=_envelope(
@@ -199,6 +199,20 @@ async def unhandled_exception_handler(_: Request, exc: Exception) -> JSONRespons
             message="An internal error occurred.",
         ),
     )
+
+
+async def unhandled_exception_handler(_: Request, exc: Exception) -> JSONResponse:
+    """Last resort for what `UnhandledErrorMiddleware` can't render.
+
+    Starlette runs this in `ServerErrorMiddleware`, outside every user
+    middleware, so its envelope has no `request_id` and its response none
+    of their headers. App exceptions don't get here: the middleware
+    renders them inside the stack. What's left is an exception raised by
+    a middleware outside it, or one re-raised because the response had
+    already started (then nothing more is sent and only the log remains).
+    """
+    log.exception("unhandled_exception", error=str(exc))
+    return internal_error_response()
 
 
 def register_exception_handlers(app: FastAPI) -> None:
