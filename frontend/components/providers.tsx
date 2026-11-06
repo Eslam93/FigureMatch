@@ -10,7 +10,7 @@ import { Toaster } from "sonner";
  * TanStack Query for server state; sonner's Toaster for transient
  * mutation feedback (Slice 4 introduces the "Content moved to trash —
  * Undo" pattern). Zustand's auth store doesn't need a provider
- * (it's a global hook). Sentry wraps this in P2.10.
+ * (it's a global hook).
  */
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(

@@ -49,7 +49,6 @@ The repo root [`README.md`](../README.md) §10 has the full deploy recipe.
 ```bash
 # .env.local
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1   # default
-NEXT_PUBLIC_SENTRY_DSN=                                  # optional; SDK no-ops if unset
 ```
 
 In production, Amplify environment configuration sets `NEXT_PUBLIC_API_BASE_URL` to the App Runner URL.

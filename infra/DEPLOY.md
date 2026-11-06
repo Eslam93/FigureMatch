@@ -199,7 +199,6 @@ when that ships.
 (this part IS console-driven because EdgeStack doesn't manage them):
 
 1. Add `NEXT_PUBLIC_API_BASE_URL` = `https://<apprunner-url>/api/v1`
-2. (Optional) `NEXT_PUBLIC_SENTRY_DSN` once you provision a Sentry project
 
 Without `NEXT_PUBLIC_API_BASE_URL`, the built frontend defaults to `http://localhost:8000/api/v1` and every request fails in production. Trigger a fresh Amplify build after the env update so the new value is baked into the bundle.
 

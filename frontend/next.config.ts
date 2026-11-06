@@ -2,8 +2,6 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  // Sentry wrapping (`withSentryConfig`) lands in P2.10. Until then,
-  // this is the bare Next.js config.
   // Build-time checks Link hrefs against the app/* file tree. Stable
   // since Next.js 15.5; it used to live under `experimental`.
   typedRoutes: true,

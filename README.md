@@ -54,7 +54,7 @@ Five core flows:
 | Auth | Custom JWT (httpOnly refresh cookie + rotation + Origin-based CSRF guard) |
 | Hosting | AWS App Runner (backend) + Amplify Hosting (frontend) + RDS Postgres _(ElastiCache Serverless Redis lights up with Phase 11 — wired in NetworkStack, not yet provisioned.)_ |
 | Infra-as-code | AWS CDK in TypeScript |
-| Observability | structlog + CloudWatch + Sentry |
+| Observability | structlog + CloudWatch + Sentry (backend) |
 | CI/CD | GitHub Actions |
 
 Rationale for each pick is in [`ARCHITECTURE.md`](./ARCHITECTURE.md).
