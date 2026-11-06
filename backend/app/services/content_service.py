@@ -38,6 +38,7 @@ from app.core.exceptions import NotFoundError
 from app.core.logging import get_logger
 from app.db.enums import ContentType, ResultParseStatus
 from app.db.models import ContentPiece, User
+from app.db.session import end_read_transaction
 from app.prompts import ad_copy as ad_copy_prompt
 from app.prompts import blog_post as blog_post_prompt
 from app.prompts import email as email_prompt
@@ -207,6 +208,8 @@ class ContentService:
         )
 
         # --- Attempt 1: strict json_schema ---
+        # Don't hold the user and brand-voice reads' transaction through the call.
+        await end_read_transaction(self._session)
         attempt1 = await self._provider.generate(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
@@ -364,6 +367,7 @@ class ContentService:
         failure is a limit the schema can't express (a field's length),
         and dropping strict mode only let the retry return any shape.
         """
+        await end_read_transaction(self._session)
         return await self._provider.generate(
             system_prompt=system_prompt,
             user_prompt=corrective_user_prompt(

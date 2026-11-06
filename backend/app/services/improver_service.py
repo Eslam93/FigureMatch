@@ -35,6 +35,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import get_logger
 from app.db.models import Improvement, User
+from app.db.session import end_read_transaction
 from app.prompts import improver as improver_prompt
 from app.providers.llm.base import ILLMProvider
 from app.repositories.improvement_repository import ImprovementRepository
@@ -130,6 +131,8 @@ class ImproverService:
         )
         json_schema = improver_prompt.ANALYZE_JSON_SCHEMA["schema"]
 
+        # Don't hold the current-user read's transaction through the call.
+        await end_read_transaction(self._session)
         attempt1 = await self._provider.generate(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
@@ -143,6 +146,7 @@ class ImproverService:
 
         if isinstance(parsed, ParseFailure):
             log.warning("improver_analyze_parse_failed_attempt_1", model=attempt1.model)
+            await end_read_transaction(self._session)
             attempt2 = await self._provider.generate(
                 system_prompt=system_prompt,
                 user_prompt=corrective_user_prompt(
@@ -192,6 +196,7 @@ class ImproverService:
         )
         json_schema = improver_prompt.REWRITE_JSON_SCHEMA["schema"]
 
+        await end_read_transaction(self._session)
         attempt1 = await self._provider.generate(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
@@ -206,6 +211,7 @@ class ImproverService:
 
         if isinstance(parsed, ParseFailure):
             log.warning("improver_rewrite_parse_failed_attempt_1", model=attempt1.model)
+            await end_read_transaction(self._session)
             attempt2 = await self._provider.generate(
                 system_prompt=system_prompt,
                 user_prompt=corrective_user_prompt(

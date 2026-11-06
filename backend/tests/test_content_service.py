@@ -35,15 +35,20 @@ from tests.scripted_openai import ScriptedUpstream, chat_completion
 class _RecordingSession:
     """Bare-minimum async-session stand-in.
 
-    The service calls `add → flush → refresh` on the session via the
-    repo. We capture the added row, no-op flush/refresh, and let the
-    test assert on what was persisted.
+    The service commits before each model call and calls `add → flush →
+    refresh` on the session via the repo. We capture the added row, no-op
+    commit/flush/refresh, and let the test assert on what was persisted.
+    Transaction behaviour against a real session is covered by
+    `tests/integration/test_model_call_transactions.py`.
     """
 
     added: list[Any] | None = None
 
     def __post_init__(self) -> None:
         self.added = []
+
+    async def commit(self) -> None:
+        return None
 
     def add(self, obj: Any) -> None:
         assert self.added is not None

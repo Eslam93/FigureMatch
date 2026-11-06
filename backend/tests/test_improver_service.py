@@ -29,6 +29,11 @@ class _RecordingSession:
     def __post_init__(self) -> None:
         self.added = []
 
+    async def commit(self) -> None:
+        # The service ends the read transaction before each model call; see
+        # tests/integration/test_model_call_transactions.py for a real session.
+        return None
+
     def add(self, obj: Any) -> None:
         assert self.added is not None
         self.added.append(obj)
