@@ -85,6 +85,7 @@ frontend/
 │   ├── content/hooks.ts       # content list / detail / generate / delete / restore mutations
 │   ├── brand-voices/hooks.ts  # brand-voice CRUD mutations
 │   ├── improve/hooks.ts       # analyze→rewrite mutation
+│   ├── errors/ai-codes.ts     # friendly copy for AI-provider error codes, shared by the hooks
 │   ├── meta/hooks.ts          # GET /meta: provider mode for the mock-mode banner
 │   ├── validation/            # Zod schemas mirrored from backend
 │   └── utils.ts               # cn() helper
