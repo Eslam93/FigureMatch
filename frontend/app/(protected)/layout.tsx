@@ -1,6 +1,7 @@
 "use client";
 
 import { MobileNav } from "@/components/mobile-nav";
+import { MockModeBanner } from "@/components/mock-mode-banner";
 import { Sidebar } from "@/components/sidebar";
 import { UserMenu } from "@/components/user-menu";
 import { useAuthGuard } from "@/lib/auth/use-auth-guard";
@@ -13,7 +14,9 @@ import { useAuthGuard } from "@/lib/auth/use-auth-guard";
  * unauthenticated, redirects to /login. While the guard query is
  * pending, renders a minimal loading state; when it resolves,
  * renders the full app shell (sidebar + top nav + content). Below `md`
- * the sidebar is hidden and the header's menu button takes over.
+ * the sidebar is hidden and the header's menu button takes over. When
+ * the backend runs the mock AI provider, a banner sits between the
+ * header and the content.
  *
  * Routes under (protected)/* share this layout. Public routes
  * (landing, /login, /register) live outside it.
@@ -43,6 +46,7 @@ export default function ProtectedLayout({ children }: Readonly<{ children: React
           <MobileNav />
           <UserMenu email={me.data.email} fullName={me.data.full_name} />
         </header>
+        <MockModeBanner />
         <main className="flex-1 overflow-auto p-6">{children}</main>
       </div>
     </div>

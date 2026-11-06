@@ -85,6 +85,7 @@ frontend/
 │   ├── content/hooks.ts       # content list / detail / generate / delete / restore mutations
 │   ├── brand-voices/hooks.ts  # brand-voice CRUD mutations
 │   ├── improve/hooks.ts       # analyze→rewrite mutation
+│   ├── meta/hooks.ts          # GET /meta: provider mode for the mock-mode banner
 │   ├── validation/            # Zod schemas mirrored from backend
 │   └── utils.ts               # cn() helper
 ├── types/api.d.ts             # OpenAPI-generated types (regenerate via `pnpm gen:api`)
