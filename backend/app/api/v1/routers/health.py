@@ -3,7 +3,6 @@
 Probes attach as the components they depend on land:
   - ``db``     — real ``SELECT 1`` probe (wired in P1.2)
   - ``openai`` — real probe (wired in P1.7)
-  - ``redis``  — real probe (wired in P11.x)
 Unwired probes report ``unknown``.
 """
 
@@ -25,7 +24,6 @@ DependencyState = Literal["ok", "unknown", "down"]
 
 class DependencyStatus(BaseModel):
     db: DependencyState = "unknown"
-    redis: DependencyState = "unknown"
     openai: DependencyState = "unknown"
 
 

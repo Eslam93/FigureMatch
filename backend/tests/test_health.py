@@ -14,11 +14,10 @@ async def test_health_returns_ok(client: AsyncClient) -> None:
     response = await client.get("/api/v1/health")
     assert response.status_code == 200
     body = response.json()
+    assert set(body.keys()) == {"status", "version", "environment", "dependencies"}
     assert body["status"] == "ok"
-    assert "version" in body
-    assert "environment" in body
-    assert "dependencies" in body
-    assert set(body["dependencies"].keys()) == {"db", "redis", "openai"}
+    # No `redis` key: the backend has no Redis dependency to report.
+    assert set(body["dependencies"].keys()) == {"db", "openai"}
 
 
 async def test_health_reports_db_ok_when_reachable(client: AsyncClient) -> None:

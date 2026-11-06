@@ -270,10 +270,6 @@ class Settings(BaseSettings):
     # uses the compose-default `database_url` above.
     rds_secret_arn: str = ""
 
-    # --- Redis ---
-    use_redis: bool = True
-    redis_url: str = "redis://redis:6379/0"
-
     # --- Cookies ---
     # Refresh-token cookie SameSite policy. `lax` is fine when frontend
     # and API share a registrable domain (custom-domain prod or local

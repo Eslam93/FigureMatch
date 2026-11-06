@@ -10,7 +10,7 @@ A production-minded SaaS demo that helps marketers generate, manage, and improve
 
 ## 1. Live demo
 
-The hosted demo was taken down after the submission window to avoid ongoing AWS charges. The full stack (Amplify static site + App Runner backend + RDS Postgres + Secrets Manager + ECR) is reproducible from scratch via [`infra/DEPLOY.md`](./infra/DEPLOY.md); a local one-command stack runs via `docker compose up` (see §3 below). The demo account is seeded with one brand voice, three content pieces (blog / LinkedIn / email), and one improvement so the dashboard renders real rows immediately on first run.
+The hosted demo was taken down after the submission window to avoid ongoing AWS charges. The full stack (Amplify static site + App Runner backend + RDS Postgres + Secrets Manager + ECR) is reproducible from scratch via [`infra/DEPLOY.md`](./infra/DEPLOY.md); locally, `docker compose up` runs Postgres + the backend and `pnpm dev` runs the frontend (see §4 below). The demo account is seeded with one brand voice, three content pieces (blog / LinkedIn / email), and one improvement so the dashboard renders real rows immediately on first run.
 
 Demo credentials (local): `demo@magnacms.dev` / `DemoPass123`.
 
@@ -47,7 +47,7 @@ Five core flows:
 | Frontend | Next.js 15 + TypeScript + Tailwind + shadcn/ui + TanStack Query + Zod + React Hook Form |
 | Backend | FastAPI + Python 3.12 + Pydantic v2 + async SQLAlchemy 2.0 + Alembic |
 | Database | PostgreSQL 16 |
-| Cache / rate limit / idempotency | Redis 7 _(plumbed in `.env.example`; backend runs with the in-memory fallback today — `USE_REDIS=false`. ElastiCache provisioning is deferred until the VPC-connector + refresh-token-blocklist work in Phase 11.)_ |
+| Cache / rate limit / idempotency | Redis 7 _(planned, not wired yet: the backend runs with the in-memory fallback today. ElastiCache provisioning is deferred until the VPC-connector + refresh-token-blocklist work in Phase 11.)_ |
 | AI — text | OpenAI `gpt-5.4-mini-2026-03-17` |
 | AI — image | OpenAI `gpt-image-2.5-flare` |
 | Object storage | S3 bucket provisioned (BlockPublic + SSE) _(generated images currently live on the App Runner local disk via `IImageStorage` → `LocalImageStorage`; the S3 + CloudFront adapter swap is tracked in [#49](https://github.com/Eslam93/MagnaCMS/issues/49).)_ |
@@ -73,16 +73,22 @@ Services come up on:
 
 | Service | URL |
 |---|---|
-| Frontend | http://localhost:3000 |
 | Backend | http://localhost:8000 |
 | Postgres | `localhost:5432` (user/pass: `app` / `app`) |
-| Redis | `localhost:6379` |
 
 First-time database setup + a seeded demo account:
 
 ```bash
 docker-compose exec backend alembic upgrade head
 docker-compose exec backend python -m app.scripts.seed
+```
+
+The frontend is not part of the compose stack; run it with `pnpm dev`:
+
+```bash
+cd frontend
+pnpm install
+pnpm dev   # http://localhost:3000, calls the backend at http://localhost:8000/api/v1
 ```
 
 ## 5. Architecture
@@ -109,7 +115,7 @@ App Runner — FastAPI containers (auto-scale, PUBLIC egress, no VPC connector)
   │
   ├──→ RDS Postgres (public endpoint; SG open on 5432, gated by `rds.force_ssl=1` + strong auto-generated password — App Runner's egress prefix list isn't stable enough to allowlist)
   ├──→ ElastiCache Redis (rate limit, cache, idempotency, refresh-token blocklist)
-  │       (today: in-memory fallback — USE_REDIS=false until Phase 11)
+  │       (today: in-memory fallback until Phase 11)
   ├──→ OpenAI API (gpt-5.4-mini text, gpt-image-2.5-flare image)
   └──→ S3 (target; today: local-disk via IImageStorage protocol)
 ```
@@ -182,8 +188,6 @@ MagnaCMS/
 | `OPENAI_IMAGE_MODEL` | no | `gpt-image-2.5-flare` | Image gen model (GPT Image, billed per token) |
 | `OPENAI_IMAGE_QUALITY` | no | `medium` | `low` / `medium` / `high` |
 | `DATABASE_URL` | yes | local compose default | asyncpg connection string |
-| `USE_REDIS` | no | `true` | Toggle in-memory fallback |
-| `REDIS_URL` | yes if `USE_REDIS=true` | local compose default | Redis URL |
 | `JWT_SECRET` | yes | — | `openssl rand -hex 32` |
 | `JWT_ACCESS_TOKEN_TTL_SECONDS` | no | `900` | 15 min |
 | `JWT_REFRESH_TOKEN_TTL_SECONDS` | no | `2592000` | 30 days |
