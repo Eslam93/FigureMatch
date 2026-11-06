@@ -63,7 +63,7 @@ export function GenerateResult({ data }: { data: GenerateResponse }) {
       ) : null}
 
       <div
-        className="prose prose-sm dark:prose-invert max-w-none"
+        className="prose prose-sm max-w-none dark:prose-invert"
         data-testid="generate-result-body"
       >
         {isDegraded ? (
