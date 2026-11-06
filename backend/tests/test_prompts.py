@@ -1,11 +1,10 @@
 """Smoke tests for the four prompt modules.
 
-These don't try to lock the exact string content (that would be churny
-every time a wording is improved). They prove the contract: every
-module exports the required surface, the user prompt threads the
-provided fields into the body, and `brand_voice_block` widens the
-prompt when supplied. Slice 6 will exercise the brand-voice path more
-deeply once the brand-voice service lands.
+These prove the contract, not the wording, which
+`tests/test_prompt_goldens.py` pins against golden files: every module
+exports the required surface, the user prompt threads the provided
+fields into the body, and `brand_voice_block` widens the prompt when
+supplied.
 """
 
 from __future__ import annotations

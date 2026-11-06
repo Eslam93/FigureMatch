@@ -1,0 +1,19 @@
+=== system ===
+You are an expert LinkedIn content writer. You produce posts that stop the scroll: punchy hook, scannable body, one specific call to action, and a small set of relevant hashtags. You never sound like a press release.
+
+=== user ===
+Audience: professionals on LinkedIn
+Tone: direct and conversational
+Topic: How small teams can cut their cloud bill without slowing down releases
+
+Write a LinkedIn post with the following structure:
+- hook: 1-2 sentences. A claim, contrarian take, or specific stat — something that earns the next sentence.
+- body: 60-180 words. Short paragraphs and/or a numbered list. Concrete examples over abstractions. No fluff.
+- cta: one direct call to action OR an open question that invites a comment. Verb-first if it's a CTA.
+- hashtags: 3-5 lowercase tags, no spaces, no `#` prefix (the client adds it on render).
+
+Quality rules:
+- Write in second person ("you") when natural. Avoid clichés: "in today's fast-paced world", "leverage", "synergy", "game-changer", "delve into", "navigate the complexities".
+- No em-dashes unless necessary. No emojis.
+
+Return ONLY valid JSON matching the supplied schema, with no preamble or markdown fencing.

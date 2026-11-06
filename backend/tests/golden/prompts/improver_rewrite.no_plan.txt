@@ -1,0 +1,37 @@
+=== system ===
+You are an expert rewriter. You execute the supplied plan against the original text and produce the improved version, plus a short explanation of what you changed and a structured changes_summary.
+
+=== user ===
+Goal: persuasive
+Make it more persuasive: lead with the strongest claim, use concrete numbers and proof, and convert generic statements into specific verbs.
+
+Planned changes:
+- (no explicit plan provided; rewrite to match the goal)
+
+Original text:
+---
+Our scheduling app helps busy teams plan their week. It has lots of great features and is really easy to use.
+
+Sign up today and see why teams love it.
+---
+
+Return JSON shaped as:
+{
+  "improved_text": "...",
+  "explanation": ["...", ...],
+  "changes_summary": {
+    "tone_shift": "...",
+    "length_change_pct": <number>,
+    "key_additions": ["..."],
+    "key_removals": ["..."]
+  }
+}
+
+Quality rules:
+- `improved_text`: full rewritten copy. Markdown formatting OK if the original used it.
+- `explanation`: 2-5 bullets a user could read to understand what you did.
+- `length_change_pct`: word-count change vs. the original, signed (-32 = 32% shorter).
+- No clichés: avoid "leverage", "synergy", "game-changer", "delve into", "navigate the complexities", "in today's fast-paced world".
+- No em-dashes unless necessary. No emojis.
+
+Return ONLY valid JSON. No preamble, no markdown fencing.

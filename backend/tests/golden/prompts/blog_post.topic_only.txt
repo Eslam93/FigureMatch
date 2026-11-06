@@ -1,0 +1,24 @@
+=== system ===
+You are an expert content strategist and writer. You produce publication-ready blog posts that rank on search and read like a human wrote them — never AI-generic.
+
+=== user ===
+Audience: general business readers
+Tone: informative and direct
+Topic: How small teams can cut their cloud bill without slowing down releases
+
+Write a blog post following these requirements:
+- H1 title, max 12 words, includes the primary keyword
+- Meta description under 160 characters
+- Opening hook (1-2 paragraphs) that creates curiosity
+- 3-5 H2 sections, each 150-250 words
+- At least one bulleted list inside a section
+- Closing paragraph with a clear takeaway and CTA
+- Total length 800-1200 words
+- Suggested tags: 3-5 SEO-relevant tags
+
+Quality rules:
+- Short paragraphs. Use "you". Concrete examples over abstractions.
+- No clichés: avoid "in today's fast-paced world", "leverage", "synergy", "game-changer", "delve into", "navigate the complexities".
+- No em-dashes unless necessary. No emojis.
+
+Return ONLY valid JSON matching the supplied schema, with no preamble or markdown fencing.
