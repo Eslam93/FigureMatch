@@ -8,12 +8,19 @@ Every error response follows the same envelope:
     }
 
 This is the contract referenced throughout the API documentation.
+
+Provider failures (`app.providers.errors.ProviderError`) aren't
+`AppException`s: their handler maps each kind to a fixed status, code and
+message, so no exception text, and with it no upstream error text, ever
+reaches a response.
 """
 
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, Final
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
@@ -22,6 +29,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.logging import get_logger
 from app.core.request_context import get_request_id
+from app.providers.errors import ProviderError, ProviderErrorKind
 
 log = get_logger(__name__)
 
@@ -88,10 +96,62 @@ class RateLimitError(AppException):
     message = "Too many requests."
 
 
-class ProviderError(AppException):
-    status_code = status.HTTP_502_BAD_GATEWAY
-    code = "PROVIDER_ERROR"
-    message = "Upstream provider error."
+@dataclass(frozen=True, slots=True)
+class _ProviderErrorResponse:
+    status_code: int
+    code: str
+    message: str
+
+
+_AI_UNAVAILABLE: Final = _ProviderErrorResponse(
+    status.HTTP_503_SERVICE_UNAVAILABLE,
+    "AI_UNAVAILABLE",
+    "The AI provider is unavailable right now. Try again later.",
+)
+
+# What the client gets for each kind of provider failure. Every message is
+# fixed: an exception's own text may describe the upstream failure, so it
+# goes to the log only. The frontend maps these codes; keep them stable.
+_PROVIDER_ERROR_RESPONSES: Final[dict[ProviderErrorKind, _ProviderErrorResponse]] = {
+    ProviderErrorKind.AUTH: _ProviderErrorResponse(
+        status.HTTP_502_BAD_GATEWAY,
+        "AI_PROVIDER_AUTH_FAILED",
+        "The AI provider rejected the server's credentials.",
+    ),
+    ProviderErrorKind.RATE_LIMITED: _ProviderErrorResponse(
+        status.HTTP_429_TOO_MANY_REQUESTS,
+        "AI_RATE_LIMITED",
+        "The AI provider is rate limiting requests. Try again shortly.",
+    ),
+    # Out of quota is an operator problem, not a reason to retry soon.
+    ProviderErrorKind.QUOTA_EXHAUSTED: _AI_UNAVAILABLE,
+    ProviderErrorKind.UNAVAILABLE: _AI_UNAVAILABLE,
+    ProviderErrorKind.TIMEOUT: _ProviderErrorResponse(
+        status.HTTP_504_GATEWAY_TIMEOUT,
+        "AI_TIMEOUT",
+        "The AI provider took too long to respond. Try again.",
+    ),
+    ProviderErrorKind.TRUNCATED: _ProviderErrorResponse(
+        status.HTTP_502_BAD_GATEWAY,
+        "AI_OUTPUT_TRUNCATED",
+        "The AI response was cut off before it was complete. Try again.",
+    ),
+    ProviderErrorKind.CONTENT_REJECTED: _ProviderErrorResponse(
+        422,
+        "AI_CONTENT_REJECTED",
+        "The AI provider declined this request under its content policy.",
+    ),
+    ProviderErrorKind.MISCONFIGURED: _ProviderErrorResponse(
+        status.HTTP_503_SERVICE_UNAVAILABLE,
+        "AI_PROVIDER_MISCONFIGURED",
+        "The AI provider is not configured correctly on the server.",
+    ),
+    ProviderErrorKind.OTHER: _ProviderErrorResponse(
+        status.HTTP_502_BAD_GATEWAY,
+        "PROVIDER_ERROR",
+        "Upstream provider error.",
+    ),
+}
 
 
 def _envelope(
@@ -137,6 +197,51 @@ async def app_exception_handler(_: Request, exc: AppException) -> JSONResponse:
     return JSONResponse(
         status_code=exc.status_code,
         content=_envelope(code=exc.code, message=exc.message, details=exc.details),
+    )
+
+
+def _retry_after_whole_seconds(seconds: float | None) -> int | None:
+    """Whole seconds for a `Retry-After` header, rounded up; None when
+    the provider didn't say or said something unusable."""
+    if seconds is None or not math.isfinite(seconds) or seconds <= 0:
+        return None
+    return math.ceil(seconds)
+
+
+async def provider_exception_handler(_: Request, exc: ProviderError) -> JSONResponse:
+    """Answer a provider failure with its kind's fixed status, code and message.
+
+    A rate limit with a known wait also gets `Retry-After` and, like the
+    RateLimit middleware's 429, `details.retry_after_seconds`: the
+    cross-origin frontend can read the body but not that header.
+    """
+    response = _PROVIDER_ERROR_RESPONSES[exc.kind]
+    retry_after = (
+        _retry_after_whole_seconds(exc.retry_after_seconds)
+        if exc.kind is ProviderErrorKind.RATE_LIMITED
+        else None
+    )
+    # A misconfiguration fails every request until someone fixes it, and
+    # nothing logs it before this point.
+    emit = log.error if exc.kind is ProviderErrorKind.MISCONFIGURED else log.warning
+    emit(
+        "provider_error",
+        kind=exc.kind.value,
+        code=response.code,
+        status_code=response.status_code,
+        error_type=type(exc).__name__,
+        error=str(exc),
+        retry_after_seconds=retry_after,
+    )
+    details: dict[str, Any] = {}
+    headers: dict[str, str] | None = None
+    if retry_after is not None:
+        details["retry_after_seconds"] = retry_after
+        headers = {"Retry-After": str(retry_after)}
+    return JSONResponse(
+        status_code=response.status_code,
+        content=_envelope(code=response.code, message=response.message, details=details),
+        headers=headers,
     )
 
 
@@ -217,7 +322,10 @@ async def unhandled_exception_handler(_: Request, exc: Exception) -> JSONRespons
 
 def register_exception_handlers(app: FastAPI) -> None:
     """Wire every handler into the FastAPI app."""
+    # The ignores: Starlette types every handler as taking a bare
+    # `Exception`, but each one takes the class it is registered for.
     app.add_exception_handler(AppException, app_exception_handler)  # type: ignore[arg-type]
+    app.add_exception_handler(ProviderError, provider_exception_handler)  # type: ignore[arg-type]
     app.add_exception_handler(StarletteHTTPException, http_exception_handler)  # type: ignore[arg-type]
     app.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore[arg-type]
     app.add_exception_handler(Exception, unhandled_exception_handler)

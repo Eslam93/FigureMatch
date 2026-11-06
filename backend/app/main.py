@@ -36,9 +36,10 @@ below reads outer-to-inner along the request path:
      raises into the INTERNAL_ERROR envelope while still INSIDE RequestID
      + SecurityHeaders, so the 500 carries `request_id`, X-Request-ID and
      the security headers. Logs it as `unhandled_exception`.
-  8. Exception handlers           — AppException, HTTPException and
-                                    validation errors get the {error, meta}
-                                    envelope here, inside every middleware.
+  8. Exception handlers           — AppException, ProviderError,
+                                    HTTPException and validation errors
+                                    get the {error, meta} envelope here,
+                                    inside every middleware.
                                     The `Exception` handler is the odd one
                                     out: Starlette runs it in its own
                                     ServerErrorMiddleware, OUTSIDE all of

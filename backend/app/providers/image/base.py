@@ -57,7 +57,7 @@ class IImageProvider(Protocol):
 
     Same error-handling contract as `ILLMProvider`: retry on transient
     failures within budget, translate provider-specific errors into
-    `ProviderError` subclasses.
+    `ProviderError`s of the right `kind`.
     """
 
     async def generate(
