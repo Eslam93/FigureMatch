@@ -13,7 +13,7 @@ One-page summary of the load-bearing choices and the trade-offs behind them.
 | Concern | Choice | Alternatives rejected |
 |---|---|---|
 | Text generation | OpenAI `gpt-5.4-mini-2026-03-17` | AWS Bedrock Claude Sonnet 4.5 (Anthropic use-case form is a multi-hour gate); Anthropic direct (no image gen, would need a second provider) |
-| Image generation | OpenAI `gpt-image-1` | AWS Bedrock Nova Canvas (`LEGACY`, EOL 2026-09-30); Replicate / fal.ai (additional account, additional billing surface) |
+| Image generation | OpenAI `gpt-image-2.5-flare` | AWS Bedrock Nova Canvas (`LEGACY`, EOL 2026-09-30); Replicate / fal.ai (additional account, additional billing surface) |
 | Backend host | AWS App Runner (no VPC connector) | Fargate (more CDK wiring); Lambda (cold start + 15-min cap); Vercel (mismatched runtime for async Python + SQLAlchemy 2.0) |
 | Frontend host | AWS Amplify Hosting | Vercel (great DX but adds a second cloud and a separate DNS story); App Runner static (no Next.js SSR/middleware) |
 | Database | RDS Postgres `db.t4g.micro`, public subnet, SG open on 5432 (gated by `rds.force_ssl=1` + strong auto-generated password — see decision #3 below) | RDS in private subnet (requires VPC connector + complications); Aurora (overkill at this scale); Supabase (third cloud) |
@@ -64,9 +64,9 @@ Steady-state monthly figures for the dev stack as currently deployed (us-east-1,
 | ElastiCache | **Deferred to Phase 11** | $0 |
 | CloudFront | **Deferred to Phase 5** (images served via App Runner's `/local-images` until then) | $0 |
 | **Total AWS** | | **~$70/month** |
-| **OpenAI** (separate budget) | `gpt-5.4-mini`: $0.75 input / $0.075 cached input / $4.50 output per 1M tokens; `gpt-image-1` medium ~$0.04 per image | Usage-based (see note) |
+| **OpenAI** (separate budget) | `gpt-5.4-mini`: $0.75 input / $0.075 cached input / $4.50 output per 1M tokens; `gpt-image-2.5-flare`: $5.00 text input / $8.00 image input / $30.00 image output per 1M tokens | Usage-based (see note) |
 
-**OpenAI note:** the earlier per-content-piece (~$0.005) and per-week (~$3–8) OpenAI estimates were calculated from an incorrect `gpt-5.4-mini` price table, so they were removed rather than re-estimated. Each text call's cost is now computed from the token counts the API reports, at the dated rates in [`backend/app/core/model_catalog.py`](./backend/app/core/model_catalog.py) (verified 2026-11-06).
+**OpenAI note:** the earlier per-content-piece (~$0.005) and per-week (~$3–8) OpenAI estimates were calculated from an incorrect `gpt-5.4-mini` price table, so they were removed rather than re-estimated. GPT Image models have no fixed per-image price either: they bill per token. Each call's cost is now computed from the token counts the API reports, at the dated rates in [`backend/app/core/model_catalog.py`](./backend/app/core/model_catalog.py) (verified 2026-11-06).
 
 The two largest dev-stack line items (App Runner at always-on, RDS at `db.t4g.micro`) are both intentional trade-offs. App Runner's min=1 keeps cold-start latency off the demo path; scale-to-zero would save ~$45/mo but make the first request after idle period unusable (~10s cold boot). The RDS public endpoint is gated by `rds.force_ssl=1` + a strong auto-generated password (see decision #3 above); private subnet + RDS Proxy is the production-grade configuration and adds ~$15–25/mo in NAT + Proxy charges.
 
@@ -84,5 +84,5 @@ Tracked on the [GitHub issue board](https://github.com/Eslam93/MagnaCMS/issues) 
 Considered but explicitly deferred to keep the surface area honest:
 
 - **Password reset / email verification** — would need an SES domain identity and a transactional template; out of scope for the demo deliverable.
-- **AWS Bedrock Nova Canvas migration plan** — Nova Canvas is `LEGACY` with EOL **2026-09-30**. `gpt-image-1` is the only image-gen path today; if Bedrock becomes cheaper or required, the `IImageProvider` interface accepts a one-class swap (see `app/providers/image/bedrock.py` stub).
+- **AWS Bedrock Nova Canvas migration plan** — Nova Canvas is `LEGACY` with EOL **2026-09-30**. OpenAI's GPT Image models (default `gpt-image-2.5-flare`) are the only image-gen path today; if Bedrock becomes cheaper or required, the `IImageProvider` interface accepts a one-class swap (see `app/providers/image/bedrock.py` stub).
 - **Multi-tenant** — current auth is per-user. Org/workspace scoping would touch every owner-filter in the repositories; not on the roadmap.

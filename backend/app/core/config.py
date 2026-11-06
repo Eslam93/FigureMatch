@@ -181,7 +181,7 @@ class Settings(BaseSettings):
     # --- OpenAI ---
     openai_api_key: SecretStr | None = None
     openai_text_model: str = "gpt-5.4-mini-2026-03-17"
-    openai_image_model: str = "gpt-image-1"
+    openai_image_model: str = "gpt-image-2.5-flare"
     openai_image_quality: str = "medium"
     openai_timeout_seconds: int = 60
     openai_max_retries: int = 3

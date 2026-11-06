@@ -202,7 +202,7 @@ async def test_happy_path_persists_image_with_is_current_true(monkeypatch) -> No
             "style_summary": "cinematic still",
         }
     )
-    image_provider = _image_provider(raw_bytes=b"\x89PNGreal-fake", model="gpt-image-1")
+    image_provider = _image_provider(raw_bytes=b"\x89PNGreal-fake", model="gpt-image-2.5-flare")
 
     service = ImageService(
         session,  # type: ignore[arg-type]
@@ -230,7 +230,7 @@ async def test_happy_path_persists_image_with_is_current_true(monkeypatch) -> No
     assert image.image_prompt.startswith("A cinematic still life")
     assert "Avoid: text, watermark" in image.image_prompt
     assert image.provider == ImageProvider.OPENAI
-    assert image.model_id == "gpt-image-1"
+    assert image.model_id == "gpt-image-2.5-flare"
     assert storage.calls == [b"\x89PNGreal-fake"]
     # Two upstream calls: LLM for prompt building, then image provider.
     assert llm.generate.await_count == 1

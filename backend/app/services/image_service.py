@@ -6,8 +6,9 @@ Slice 3 connects three moving parts that have been stubbed for a while:
      plus a chosen style into a structured image prompt (`prompt`,
      `negative_prompt`, `style_summary`). Uses the same OpenAI client
      as text gen; the cost shows up under the same provider config.
-  2. The image provider — `gpt-image-1` in OpenAI mode, `mock-image-v1`
-     for tests/demos, Bedrock Nova Canvas stubbed for later.
+  2. The image provider — a GPT Image model (default
+     `gpt-image-2.5-flare`) in OpenAI mode, `mock-image-v1` for
+     tests/demos, Bedrock Nova Canvas stubbed for later.
   3. `IImageStorage` — local-disk by default in this slice; an S3 path
      will land with the deploy batch.
 
@@ -143,8 +144,8 @@ class ImageService:
         prompt_outcome = await self._build_image_prompt(piece, style)
 
         # --- Step 2: ask the image provider for bytes ---
-        # `gpt-image-1` doesn't accept a separate negative_prompt — fold
-        # the negatives into the positive prompt as an "avoid" clause.
+        # OpenAI's Images API doesn't accept a separate negative_prompt —
+        # fold the negatives into the positive prompt as an "avoid" clause.
         # This is a no-op for providers that accept a real negative
         # field (Bedrock); it's still safe because the wording is
         # natural-language English.

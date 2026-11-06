@@ -30,7 +30,7 @@ class ResultParseStatus(StrEnum):
 class ImageProvider(StrEnum):
     """Which image-generation backend produced a given image."""
 
-    OPENAI = "openai"  # gpt-image-1
+    OPENAI = "openai"  # GPT Image models (default gpt-image-2.5-flare)
     NOVA_CANVAS = "nova_canvas"  # AWS Bedrock — documented alternative
 
 

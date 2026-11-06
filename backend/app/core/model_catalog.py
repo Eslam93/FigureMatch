@@ -11,7 +11,7 @@ catalog suggests another.
 Prices are OpenAI's standard tier, in USD per 1M tokens.
 
 Consumers:
-  - the OpenAI chat provider prices every call from here.
+  - the OpenAI chat and image providers price every call from here.
 
 This module must stay free of `app.core.config` and `app.providers`
 imports: both of those import it, so anything else would be a cycle.

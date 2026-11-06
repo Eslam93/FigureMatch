@@ -137,7 +137,7 @@ def test_generated_image_shape() -> None:
     assert cp_fk.column.table.name == "content_pieces"
     assert cp_fk.ondelete == "CASCADE"
     assert isinstance(cols["is_current"].type, Boolean)
-    # `seed` is nullable for gpt-image-1 which doesn't expose one.
+    # `seed` is nullable for gpt-image-2.5-flare which doesn't expose one.
     assert cols["seed"].nullable is True
 
 
