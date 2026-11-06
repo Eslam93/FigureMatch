@@ -12,7 +12,7 @@ Write a marketing email with the following structure:
 - greeting: short and human. "Hi there," is fine. Avoid "Dear valued customer".
 - body: 60-180 words. Open with the most concrete claim. Short paragraphs. One specific reason the reader should care, then the smallest next step.
 - cta_text: 2-5 words for the button label. Verb-first.
-- sign_off: a short closer (e.g., '— The Magna team').
+- sign_off: a short closer that ends with the literal placeholder [Your name] (e.g., 'Thanks, [Your name]'). Never invent a sender, team, or company name.
 
 Quality rules:
 - Use "you" where natural. Avoid clichés: "in today's fast-paced world", "leverage", "synergy", "game-changer", "delve into", "navigate the complexities".

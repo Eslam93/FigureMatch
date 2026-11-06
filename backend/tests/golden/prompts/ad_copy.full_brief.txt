@@ -21,7 +21,8 @@ Produce exactly three ad variants in a single JSON object with a `variants` arra
 `angle` must be one of: "curiosity", "social_proof", "transformation", "urgency", "problem_solution". Pick the best fit per variant.
 
 Quality rules:
-- Specific verbs. Concrete numbers when honest. Avoid clichés: "leverage", "synergy", "game-changer", "delve into", "navigate the complexities", "in today's fast-paced world".
+- Use only facts stated above. Never invent numbers, prices, results, or testimonials; choose social_proof only if the proof is stated above.
+- Specific verbs. Avoid clichés: "leverage", "synergy", "game-changer", "delve into", "navigate the complexities", "in today's fast-paced world".
 - No em-dashes unless necessary. No emojis.
 
 Return ONLY valid JSON matching the supplied schema, with no preamble or markdown fencing.

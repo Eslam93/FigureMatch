@@ -256,9 +256,9 @@ async def test_prompt_snapshot_persisted_even_on_failure() -> None:
     "content_type,expected_version",
     [
         (ContentType.BLOG_POST, "blog_post.v1"),
-        (ContentType.LINKEDIN_POST, "linkedin_post.v1"),
-        (ContentType.EMAIL, "email.v1"),
-        (ContentType.AD_COPY, "ad_copy.v1"),
+        (ContentType.LINKEDIN_POST, "linkedin_post.v2"),
+        (ContentType.EMAIL, "email.v2"),
+        (ContentType.AD_COPY, "ad_copy.v2"),
     ],
     ids=lambda x: x.value if isinstance(x, ContentType) else x,
 )

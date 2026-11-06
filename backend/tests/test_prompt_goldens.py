@@ -17,6 +17,9 @@ To accept an intended change, regenerate the files and commit them with it:
 In PowerShell, set `$env:UPDATE_GOLDENS = "1"` first and remove it afterwards
 with `Remove-Item Env:UPDATE_GOLDENS`. Regenerating rewrites only the files
 whose render changed, and passes; review `git diff` before committing.
+
+The same renders, plus the image prompts and every corrective-retry
+instruction, must also never name Magna: the app's name isn't the user's brand.
 """
 
 from __future__ import annotations
@@ -31,7 +34,7 @@ import pytest
 
 from app.db.enums import ImprovementGoal
 from app.db.models import BrandVoice
-from app.prompts import ad_copy, blog_post, email, improver, linkedin_post
+from app.prompts import ad_copy, blog_post, email, image_prompt_builder, improver, linkedin_post
 from app.services.brand_voice_service import render_brand_voice_block
 
 _GOLDEN_DIR = Path(__file__).parent / "golden" / "prompts"
@@ -163,3 +166,27 @@ def test_every_golden_file_belongs_to_a_case() -> None:
     expected = {f"{case}.txt" for case in _CASES}
     stale = sorted(path.name for path in _GOLDEN_DIR.glob("*.txt") if path.name not in expected)
     assert not stale, f"no case renders these golden files; delete them: {stale}"
+
+
+_CORRECTIVE_RETRY_INSTRUCTIONS = {
+    "blog_post": blog_post.CORRECTIVE_RETRY_INSTRUCTION,
+    "linkedin_post": linkedin_post.CORRECTIVE_RETRY_INSTRUCTION,
+    "email": email.CORRECTIVE_RETRY_INSTRUCTION,
+    "ad_copy": ad_copy.CORRECTIVE_RETRY_INSTRUCTION,
+    "improver_analyze": improver.CORRECTIVE_RETRY_INSTRUCTION_ANALYZE,
+    "improver_rewrite": improver.CORRECTIVE_RETRY_INSTRUCTION_REWRITE,
+    "image_prompt": image_prompt_builder.CORRECTIVE_RETRY_INSTRUCTION,
+}
+
+
+def test_no_prompt_names_magna() -> None:
+    """A prompt that names the app invites the model to sign the user's copy with it."""
+    prompts = {case: "\n".join(render()) for case, render in _CASES.items()}
+    for style in image_prompt_builder.SUPPORTED_STYLES:
+        rendered = image_prompt_builder.build_prompt(content_summary=_TOPIC, style=style)
+        prompts[f"image_prompt.{style}"] = "\n".join(rendered)
+    for name, instruction in _CORRECTIVE_RETRY_INSTRUCTIONS.items():
+        prompts[f"{name}.corrective_retry"] = instruction
+
+    naming_magna = sorted(name for name, text in prompts.items() if "magna" in text.casefold())
+    assert not naming_magna, f"these prompts name Magna: {naming_magna}"

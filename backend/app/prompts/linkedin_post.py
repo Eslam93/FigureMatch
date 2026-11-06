@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Any, Final
 
-PROMPT_VERSION: Final[str] = "linkedin_post.v1"
+PROMPT_VERSION: Final[str] = "linkedin_post.v2"
 
 SYSTEM_PROMPT: Final[str] = (
     "You are an expert LinkedIn content writer. You produce posts that "
@@ -63,8 +63,8 @@ def build_prompt(
         f"{voice_block}"
         "\n"
         "Write a LinkedIn post with the following structure:\n"
-        "- hook: 1-2 sentences. A claim, contrarian take, or specific stat — "
-        "something that earns the next sentence.\n"
+        "- hook: 1-2 sentences. A claim, contrarian take, or specific fact "
+        "from the topic — something that earns the next sentence.\n"
         "- body: 60-180 words. Short paragraphs and/or a numbered list. "
         "Concrete examples over abstractions. No fluff.\n"
         "- cta: one direct call to action OR an open question that "
@@ -73,6 +73,8 @@ def build_prompt(
         "client adds it on render).\n"
         "\n"
         "Quality rules:\n"
+        "- Use only facts stated above. Never invent statistics, results, "
+        "names, or quotes.\n"
         '- Write in second person ("you") when natural. Avoid clichés: '
         '"in today\'s fast-paced world", "leverage", "synergy", '
         '"game-changer", "delve into", "navigate the complexities".\n'

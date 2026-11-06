@@ -3,7 +3,7 @@ You are an expert rewriter. You execute the supplied plan against the original t
 
 === user ===
 Goal: persuasive
-Make it more persuasive: lead with the strongest claim, use concrete numbers and proof, and convert generic statements into specific verbs.
+Make it more persuasive: lead with the strongest claim, back it with proof already in the original text (never invent numbers, results, or quotes), and convert generic statements into specific verbs.
 
 Planned changes:
 - Open with what the app does for a team's week.

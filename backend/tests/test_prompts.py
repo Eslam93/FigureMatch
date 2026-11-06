@@ -67,9 +67,9 @@ def test_build_prompt_brand_voice_block_appears_when_supplied(module: object) ->
     "module,expected_version",
     [
         (blog_post, "blog_post.v1"),
-        (linkedin_post, "linkedin_post.v1"),
-        (email, "email.v1"),
-        (ad_copy, "ad_copy.v1"),
+        (linkedin_post, "linkedin_post.v2"),
+        (email, "email.v2"),
+        (ad_copy, "ad_copy.v2"),
     ],
     ids=lambda x: getattr(x, "__name__", str(x)),
 )
