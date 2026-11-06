@@ -12,10 +12,10 @@ This is the contract referenced throughout the API documentation.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any
 
 from fastapi import FastAPI, Request, status
-from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -149,6 +149,19 @@ async def http_exception_handler(_: Request, exc: StarletteHTTPException) -> JSO
     )
 
 
+def _public_validation_errors(errors: Sequence[Any]) -> list[dict[str, Any]]:
+    """Keep only `loc`, `msg` and `type` of each validation error.
+
+    Pydantic also returns `input`, the submitted value, so a rejected
+    password would come straight back in the response body. `ctx` and
+    `url` only describe Pydantic internals. The frontend reads `loc` and
+    `msg`.
+    """
+    return [
+        {"loc": err.get("loc"), "msg": err.get("msg"), "type": err.get("type")} for err in errors
+    ]
+
+
 async def validation_exception_handler(
     _: Request,
     exc: RequestValidationError,
@@ -172,7 +185,7 @@ async def validation_exception_handler(
         content=_envelope(
             code=code,
             message=message,
-            details={"errors": jsonable_encoder(errors)},
+            details={"errors": _public_validation_errors(errors)},
         ),
     )
 
