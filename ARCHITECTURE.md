@@ -79,7 +79,7 @@ Tracked on the [GitHub issue board](https://github.com/Eslam93/MagnaCMS/issues) 
 3. **OIDC role for `deploy.yml`** — replaces the current manual `docker push` + `aws amplify create-deployment` flow with the existing workflow once the IAM trust relationship is wired.
 4. **Phase 11 hardening** ([#88](https://github.com/Eslam93/MagnaCMS/issues/88), [#89](https://github.com/Eslam93/MagnaCMS/issues/89), [#90](https://github.com/Eslam93/MagnaCMS/issues/90)) — Redis blocklist for refresh tokens, idempotency middleware, per-endpoint rate limit tuning. All require the VPC connector that's currently deferred.
 5. **Exports** ([#73](https://github.com/Eslam93/MagnaCMS/issues/73), [#74](https://github.com/Eslam93/MagnaCMS/issues/74), [#75](https://github.com/Eslam93/MagnaCMS/issues/75)) — `GET /content/:id/export?format=pdf|docx|markdown`. Reuses the same `rendered_text` field the dashboard previews.
-6. **Frontend polish** ([#79](https://github.com/Eslam93/MagnaCMS/issues/79)–[#87](https://github.com/Eslam93/MagnaCMS/issues/87)) — error boundaries, empty states, 404/500 pages, mobile responsive audit, accessibility pass, dark mode polish, loading skeletons.
+6. **Frontend polish** ([#79](https://github.com/Eslam93/MagnaCMS/issues/79)–[#87](https://github.com/Eslam93/MagnaCMS/issues/87)) — section-level error boundaries, empty states, mobile responsive audit, accessibility pass, dark mode polish, loading skeletons.
 
 Considered but explicitly deferred to keep the surface area honest:
 
