@@ -65,8 +65,8 @@ applications:
             "Target": "/index.html",
           },
         ],
-        "Description": "MagnaCMS frontend (dev)",
-        "Name": "magnacms-dev",
+        "Description": "FigureMatch frontend (dev)",
+        "Name": "figurematch-dev",
         "Tags": [
           {
             "Key": "environment",
@@ -74,7 +74,7 @@ applications:
           },
           {
             "Key": "project",
-            "Value": "magnacms",
+            "Value": "figurematch",
           },
         ],
       },

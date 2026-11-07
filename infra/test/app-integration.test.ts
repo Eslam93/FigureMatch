@@ -21,14 +21,14 @@ describe("Full app synthesis (dev)", () => {
   const cfg = loadConfig("dev");
   const env = { region: cfg.region };
 
-  const network = new NetworkStack(app, "magnacms-dev-network", { env, cfg });
-  const data = new DataStack(app, "magnacms-dev-data", {
+  const network = new NetworkStack(app, "figurematch-dev-network", { env, cfg });
+  const data = new DataStack(app, "figurematch-dev-data", {
     env,
     cfg,
     vpc: network.vpc,
     sgRds: network.sgRds,
   });
-  const compute = new ComputeStack(app, "magnacms-dev-compute", {
+  const compute = new ComputeStack(app, "figurematch-dev-compute", {
     env,
     cfg,
     vpc: network.vpc,
@@ -39,10 +39,10 @@ describe("Full app synthesis (dev)", () => {
     corsOrigins: "https://test-frontend.example.com",
     imagesCdnBaseUrl: "https://test-frontend.example.com/local-images",
   });
-  const edge = new EdgeStack(app, "magnacms-dev-edge", { env, cfg });
+  const edge = new EdgeStack(app, "figurematch-dev-edge", { env, cfg });
   const observability = new ObservabilityStack(
     app,
-    "magnacms-dev-observability",
+    "figurematch-dev-observability",
     { env, cfg },
   );
 
@@ -52,14 +52,14 @@ describe("Full app synthesis (dev)", () => {
     expect(assembly.stacks).toHaveLength(5);
   });
 
-  it("stack names follow `magnacms-${env}-${component}`", () => {
+  it("stack names follow `figurematch-${env}-${component}`", () => {
     const stackNames = assembly.stacks.map((s) => s.stackName).sort();
     expect(stackNames).toEqual([
-      "magnacms-dev-compute",
-      "magnacms-dev-data",
-      "magnacms-dev-edge",
-      "magnacms-dev-network",
-      "magnacms-dev-observability",
+      "figurematch-dev-compute",
+      "figurematch-dev-data",
+      "figurematch-dev-edge",
+      "figurematch-dev-network",
+      "figurematch-dev-observability",
     ]);
   });
 
@@ -73,15 +73,15 @@ describe("Full app synthesis (dev)", () => {
     // network may or may not generate a stack-level dep depending on
     // how CDK resolves it — the important contract here is that
     // data → compute import flow works.
-    const computeArtifact = assembly.getStackArtifact("magnacms-dev-compute");
+    const computeArtifact = assembly.getStackArtifact("figurematch-dev-compute");
     const stackDeps = computeArtifact.dependencies
       .map((d) => d.id)
       .filter((id) => !id.endsWith(".assets"));
-    expect(stackDeps).toContain("magnacms-dev-data");
+    expect(stackDeps).toContain("figurematch-dev-data");
   });
 
   it("edge has no stack-level dependencies (CloudFront-for-images deferred — see P2.5)", () => {
-    const edgeArtifact = assembly.getStackArtifact("magnacms-dev-edge");
+    const edgeArtifact = assembly.getStackArtifact("figurematch-dev-edge");
     const stackDeps = edgeArtifact.dependencies
       .map((d) => d.id)
       .filter((id) => !id.endsWith(".assets"));

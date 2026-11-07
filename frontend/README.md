@@ -98,4 +98,4 @@ frontend/
 
 ## Testing
 
-Unit + component tests live in [`tests/`](./tests). They mock the API hooks at the module level and exercise components in isolation. Run with `pnpm test`; CI runs the same. Playwright E2E is on the backlog ([#86](https://github.com/Eslam93/MagnaCMS/issues/86)) but not wired yet.
+Unit + component tests live in [`tests/`](./tests). They mock the API hooks at the module level and exercise components in isolation. Run with `pnpm test`; CI runs the same. Playwright E2E is on the backlog ([#86](https://github.com/Eslam93/FigureMatch/issues/86)) but not wired yet.

@@ -73,7 +73,7 @@ describe("DataStack (dev)", () => {
 
   it("JWT secret uses generateSecretString with 64 chars (hex pattern)", () => {
     template.hasResourceProperties("AWS::SecretsManager::Secret", {
-      Name: "magnacms-dev-jwt-secret",
+      Name: "figurematch-dev-jwt-secret",
       GenerateSecretString: {
         PasswordLength: 64,
         ExcludePunctuation: true,
@@ -83,7 +83,7 @@ describe("DataStack (dev)", () => {
 
   it("OpenAI key secret has no generateSecretString (manual population)", () => {
     template.hasResourceProperties("AWS::SecretsManager::Secret", {
-      Name: "magnacms-dev-openai-api-key",
+      Name: "figurematch-dev-openai-api-key",
     });
   });
 });

@@ -19,7 +19,7 @@ with `Remove-Item Env:UPDATE_GOLDENS`. Regenerating rewrites only the files
 whose render changed, and passes; review `git diff` before committing.
 
 The same renders, plus the image prompts and every corrective-retry
-instruction, must also never name Magna: the app's name isn't the user's brand.
+instruction, must also never name FigureMatch: the app's name isn't the user's brand.
 """
 
 from __future__ import annotations
@@ -179,7 +179,7 @@ _CORRECTIVE_RETRY_INSTRUCTIONS = {
 }
 
 
-def test_no_prompt_names_magna() -> None:
+def test_no_prompt_names_the_app() -> None:
     """A prompt that names the app invites the model to sign the user's copy with it."""
     prompts = {case: "\n".join(render()) for case, render in _CASES.items()}
     for style in image_prompt_builder.SUPPORTED_STYLES:
@@ -188,5 +188,5 @@ def test_no_prompt_names_magna() -> None:
     for name, instruction in _CORRECTIVE_RETRY_INSTRUCTIONS.items():
         prompts[f"{name}.corrective_retry"] = instruction
 
-    naming_magna = sorted(name for name, text in prompts.items() if "magna" in text.casefold())
-    assert not naming_magna, f"these prompts name Magna: {naming_magna}"
+    naming_app = sorted(name for name, text in prompts.items() if "figurematch" in text.casefold())
+    assert not naming_app, f"these prompts name FigureMatch: {naming_app}"

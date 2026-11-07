@@ -37,12 +37,12 @@ from app.services.improver_service import ImproverService
 
 log = get_logger(__name__)
 
-DEMO_EMAIL = "demo@magnacms.dev"
+DEMO_EMAIL = "demo@figurematch.dev"
 DEMO_PASSWORD = "DemoPass123"  # noqa: S105 — public demo credential, printed on success
-DEMO_NAME = "Magna Demo"
+DEMO_NAME = "FigureMatch Demo"
 
 DEMO_VOICE: dict[str, Any] = {
-    "name": "Magna in-house",
+    "name": "In-house voice",
     "description": "Direct, specific, no clichés.",
     "tone_descriptors": ["direct", "specific", "warm"],
     "banned_words": ["leverage", "synergy", "game-changer", "in today's fast-paced world"],

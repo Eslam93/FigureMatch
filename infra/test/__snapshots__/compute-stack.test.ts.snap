@@ -244,7 +244,7 @@ exports[`ComputeStack (dev) matches snapshot 1`] = `
     },
     "AutoScalingConfig": {
       "Properties": {
-        "AutoScalingConfigurationName": "magnacms-dev-apprunner-asg",
+        "AutoScalingConfigurationName": "figurematch-dev-apprunner-asg",
         "MaxConcurrency": 80,
         "MaxSize": 3,
         "MinSize": 1,
@@ -259,14 +259,14 @@ exports[`ComputeStack (dev) matches snapshot 1`] = `
         "LifecyclePolicy": {
           "LifecyclePolicyText": "{"rules":[{"rulePriority":1,"description":"Keep last 10 images, remove older","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":10},"action":{"type":"expire"}}]}",
         },
-        "RepositoryName": "magnacms-dev-backend",
+        "RepositoryName": "figurematch-dev-backend",
       },
       "Type": "AWS::ECR::Repository",
       "UpdateReplacePolicy": "Delete",
     },
     "MigrationCluster12411DBF": {
       "Properties": {
-        "ClusterName": "magnacms-dev-migrations",
+        "ClusterName": "figurematch-dev-migrations",
       },
       "Type": "AWS::ECS::Cluster",
     },
@@ -387,7 +387,7 @@ exports[`ComputeStack (dev) matches snapshot 1`] = `
             "Arn",
           ],
         },
-        "Family": "magnacms-dev-migrate",
+        "Family": "figurematch-dev-migrate",
         "Memory": "512",
         "NetworkMode": "awsvpc",
         "RequiresCompatibilities": [
@@ -572,7 +572,7 @@ exports[`ComputeStack (dev) matches snapshot 1`] = `
             "EgressType": "DEFAULT",
           },
         },
-        "ServiceName": "magnacms-dev-backend",
+        "ServiceName": "figurematch-dev-backend",
         "SourceConfiguration": {
           "AuthenticationConfiguration": {
             "AccessRoleArn": {

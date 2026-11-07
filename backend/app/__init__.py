@@ -1,3 +1,3 @@
-"""MagnaCMS backend application package."""
+"""FigureMatch backend application package."""
 
 __version__ = "0.1.0"

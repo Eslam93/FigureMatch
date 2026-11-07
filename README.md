@@ -1,10 +1,12 @@
-# MagnaCMS — AI Content Marketing Suite
+# FigureMatch
+
+> **Rebuild in progress.** FigureMatch is being rebuilt from the AI content-marketing studio documented below into a bilingual Arabic/English figure checker: it confirms every number in one language version matches the other. لكل رقم أصل. Until that lands, this README describes the current studio.
 
 A production-minded SaaS demo that helps marketers generate, manage, and improve marketing content using AI. Every generated piece can be paired with an AI-generated image in one flow.
 
 > **Status:** in active development. The repo is functional from day one — see the dev log for what works today vs. what's next.
 
-[![Backend CI](https://github.com/Eslam93/MagnaCMS/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/Eslam93/MagnaCMS/actions/workflows/backend-ci.yml) [![Frontend CI](https://github.com/Eslam93/MagnaCMS/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/Eslam93/MagnaCMS/actions/workflows/frontend-ci.yml) [![Infra CI](https://github.com/Eslam93/MagnaCMS/actions/workflows/infra-ci.yml/badge.svg)](https://github.com/Eslam93/MagnaCMS/actions/workflows/infra-ci.yml) ![License](https://img.shields.io/badge/license-MIT-blue)
+[![Backend CI](https://github.com/Eslam93/FigureMatch/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/Eslam93/FigureMatch/actions/workflows/backend-ci.yml) [![Frontend CI](https://github.com/Eslam93/FigureMatch/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/Eslam93/FigureMatch/actions/workflows/frontend-ci.yml) [![Infra CI](https://github.com/Eslam93/FigureMatch/actions/workflows/infra-ci.yml/badge.svg)](https://github.com/Eslam93/FigureMatch/actions/workflows/infra-ci.yml) ![License](https://img.shields.io/badge/license-MIT-blue)
 
 ---
 
@@ -12,7 +14,7 @@ A production-minded SaaS demo that helps marketers generate, manage, and improve
 
 The hosted demo was taken down after the submission window to avoid ongoing AWS charges. The full stack (Amplify static site + App Runner backend + RDS Postgres + Secrets Manager + ECR) is reproducible from scratch via [`infra/DEPLOY.md`](./infra/DEPLOY.md); locally, `docker compose up` runs Postgres + the backend and `pnpm dev` runs the frontend (see §4 below). The demo account is seeded with one brand voice, three content pieces (blog / LinkedIn / email), and one improvement so the dashboard renders real rows immediately on first run.
 
-Demo credentials (local): `demo@magnacms.dev` / `DemoPass123`.
+Demo credentials (local): `demo@figurematch.dev` / `DemoPass123`.
 
 ## For reviewers
 
@@ -50,7 +52,7 @@ Five core flows:
 | Cache / rate limit / idempotency | Redis 7 _(planned, not wired yet: the backend runs with the in-memory fallback today. ElastiCache provisioning is deferred until the VPC-connector + refresh-token-blocklist work in Phase 11.)_ |
 | AI — text | OpenAI `gpt-5.4-mini-2026-03-17` |
 | AI — image | OpenAI `gpt-image-2.5-flare` |
-| Object storage | S3 bucket provisioned (BlockPublic + SSE) _(generated images currently live on the App Runner local disk via `IImageStorage` → `LocalImageStorage`; the S3 + CloudFront adapter swap is tracked in [#49](https://github.com/Eslam93/MagnaCMS/issues/49).)_ |
+| Object storage | S3 bucket provisioned (BlockPublic + SSE) _(generated images currently live on the App Runner local disk via `IImageStorage` → `LocalImageStorage`; the S3 + CloudFront adapter swap is tracked in [#49](https://github.com/Eslam93/FigureMatch/issues/49).)_ |
 | Auth | Custom JWT (httpOnly refresh cookie + rotation + Origin-based CSRF guard) |
 | Hosting | AWS App Runner (backend) + Amplify Hosting (frontend) + RDS Postgres _(ElastiCache Serverless Redis lights up with Phase 11 — wired in NetworkStack, not yet provisioned.)_ |
 | Infra-as-code | AWS CDK in TypeScript |
@@ -62,8 +64,8 @@ Rationale for each pick is in [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 ## 4. Quick start (local)
 
 ```bash
-git clone https://github.com/Eslam93/MagnaCMS.git
-cd MagnaCMS
+git clone https://github.com/Eslam93/FigureMatch.git
+cd FigureMatch
 cp .env.example .env
 # Fill in OPENAI_API_KEY and JWT_SECRET. Everything else has sane defaults.
 docker-compose up --build
@@ -166,7 +168,7 @@ internet (see [`app/main.py`](./backend/app/main.py)).
 ## 7. Repository layout
 
 ```
-MagnaCMS/
+FigureMatch/
 ├── README.md                  # this file
 ├── ARCHITECTURE.md            # key trade-offs + cost estimate
 ├── DEVLOG.md                  # running journal of decisions and progress
@@ -250,7 +252,7 @@ Fix surfaces:
 | `pnpm lint` (auto-fixable) | `pnpm lint --fix` |
 
 Playwright E2E (`@playwright/test` + a happy-path spec) is on the backlog
-but not wired yet — see [the open backlog](https://github.com/Eslam93/MagnaCMS/issues/86).
+but not wired yet — see [the open backlog](https://github.com/Eslam93/FigureMatch/issues/86).
 
 ## 10. Deployment
 
@@ -258,11 +260,11 @@ Infrastructure is defined in [`infra/`](./infra/) using AWS CDK in TypeScript. F
 
 | Stack | Owns |
 |---|---|
-| `magnacms-dev-network` | VPC + 2 AZs (public subnets only) + RDS/Redis security groups |
-| `magnacms-dev-data` | RDS Postgres, S3 images bucket, Secrets Manager (JWT + OpenAI key). ElastiCache Serverless Redis was previously here but is currently dropped pending the Phase-11 VPC-connector work. |
-| `magnacms-dev-compute` | ECR repo, App Runner backend service, IAM roles, Fargate task definition for migrations |
-| `magnacms-dev-edge` | Amplify hosting app (CloudFront-for-images deferred to Phase 5; see [DEVLOG.md](./DEVLOG.md)) |
-| `magnacms-dev-observability` | CloudWatch log groups with 14-day retention |
+| `figurematch-dev-network` | VPC + 2 AZs (public subnets only) + RDS/Redis security groups |
+| `figurematch-dev-data` | RDS Postgres, S3 images bucket, Secrets Manager (JWT + OpenAI key). ElastiCache Serverless Redis was previously here but is currently dropped pending the Phase-11 VPC-connector work. |
+| `figurematch-dev-compute` | ECR repo, App Runner backend service, IAM roles, Fargate task definition for migrations |
+| `figurematch-dev-edge` | Amplify hosting app (CloudFront-for-images deferred to Phase 5; see [DEVLOG.md](./DEVLOG.md)) |
+| `figurematch-dev-observability` | CloudWatch log groups with 14-day retention |
 
 ### First deploy (manual)
 
@@ -285,15 +287,15 @@ npx cdk deploy --all -c env=dev
 
 ```bash
 # Manual deploy (current path) — full sequence in infra/DEPLOY.md
-ECR_URI=$(aws ecr describe-repositories --repository-names magnacms-dev-backend --query 'repositories[0].repositoryUri' --output text)
+ECR_URI=$(aws ecr describe-repositories --repository-names figurematch-dev-backend --query 'repositories[0].repositoryUri' --output text)
 aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin "$ECR_URI"
 docker buildx build --platform linux/amd64 --provenance=false \
   -t "$ECR_URI:$(git rev-parse --short HEAD)" -t "$ECR_URI:latest" --load backend/
 docker push "$ECR_URI:$(git rev-parse --short HEAD)"
 docker push "$ECR_URI:latest"
 # Run alembic via the migration Fargate task (DEPLOY.md §6 has the full command)
-APPRUNNER_ARN=$(aws cloudformation describe-stacks --stack-name magnacms-dev-compute \
-  --query "Stacks[0].Outputs[?ExportName=='magnacms-dev-compute-apprunner-service-arn'].OutputValue" --output text)
+APPRUNNER_ARN=$(aws cloudformation describe-stacks --stack-name figurematch-dev-compute \
+  --query "Stacks[0].Outputs[?ExportName=='figurematch-dev-compute-apprunner-service-arn'].OutputValue" --output text)
 aws apprunner start-deployment --service-arn "$APPRUNNER_ARN"
 ```
 
@@ -303,12 +305,12 @@ Frontend deploys via `aws amplify create-deployment` + presigned-URL zip upload 
 cd frontend
 NEXT_OUTPUT=export NEXT_PUBLIC_API_BASE_URL=<api-base> pnpm build
 python -c "import os, zipfile; root='out'; \
-  z = zipfile.ZipFile('magnacms-frontend.zip','w',zipfile.ZIP_DEFLATED); \
+  z = zipfile.ZipFile('figurematch-frontend.zip','w',zipfile.ZIP_DEFLATED); \
   [z.write(os.path.join(d,f), os.path.relpath(os.path.join(d,f), root).replace(os.sep,'/')) \
    for d,_,files in os.walk(root) for f in files]; z.close()"
 CREATE=$(aws amplify create-deployment --app-id $AMPLIFY_APP_ID --branch-name main)
 ZIP_URL=$(echo "$CREATE" | jq -r '.zipUploadUrl'); JOB_ID=$(echo "$CREATE" | jq -r '.jobId')
-curl -fsS -X PUT --data-binary @magnacms-frontend.zip "$ZIP_URL"
+curl -fsS -X PUT --data-binary @figurematch-frontend.zip "$ZIP_URL"
 aws amplify start-deployment --app-id $AMPLIFY_APP_ID --branch-name main --job-id "$JOB_ID"
 ```
 
@@ -347,25 +349,25 @@ If the clock kept running, in priority order:
 
 ### Deploy-batch follow-ups (1–2 days of work each)
 
-1. **S3-backed `IImageStorage` adapter** ([#49](https://github.com/Eslam93/MagnaCMS/issues/49)). The protocol seam already exists — `LocalImageStorage` lives behind `IImageStorage`, and the projection layer already builds image URLs from `s3_key` + storage config at response time (not from a persisted `cdn_url`). The swap is a one-class implementation (`S3ImageStorage` calling `boto3.upload_fileobj`), a config flag, and an alembic-safe column-nullable migration. Removes the only known limitation in the demo flow (the cross-container caveat where Fargate-seeded image bytes never reach the App Runner instance).
+1. **S3-backed `IImageStorage` adapter** ([#49](https://github.com/Eslam93/FigureMatch/issues/49)). The protocol seam already exists — `LocalImageStorage` lives behind `IImageStorage`, and the projection layer already builds image URLs from `s3_key` + storage config at response time (not from a persisted `cdn_url`). The swap is a one-class implementation (`S3ImageStorage` calling `boto3.upload_fileobj`), a config flag, and an alembic-safe column-nullable migration. Removes the only known limitation in the demo flow (the cross-container caveat where Fargate-seeded image bytes never reach the App Runner instance).
 2. **CloudFront in front of S3.** Public-read distribution with signed-URL option for protected images. Drops App Runner egress charges, adds CDN caching, and the existing `IMAGES_CDN_BASE_URL` env var already isolates the change to a CDK + config update — no application code needs to know.
 3. **Real OIDC role for `deploy.yml`** so the manual `docker push` + `aws apprunner start-deployment` + `aws amplify create-deployment` dance becomes one workflow click. The workflow exists but the IAM trust relationship isn't wired; ~30 min of one-time AWS setup.
 
 ### Submission-bonus items
 
-4. **Markdown export** for content pieces ([#75](https://github.com/Eslam93/MagnaCMS/issues/75), size:S). The brief asks for view/copy/**download**/delete in the dashboard; download isn't shipped. Markdown lift is small because `rendered_text` is already the canonical Markdown — it's a `GET /content/:id/export?format=md` route + a download button. PDF/DOCX exports are the bigger lift; tracked separately as [#73](https://github.com/Eslam93/MagnaCMS/issues/73) / [#74](https://github.com/Eslam93/MagnaCMS/issues/74).
+4. **Markdown export** for content pieces ([#75](https://github.com/Eslam93/FigureMatch/issues/75), size:S). The brief asks for view/copy/**download**/delete in the dashboard; download isn't shipped. Markdown lift is small because `rendered_text` is already the canonical Markdown — it's a `GET /content/:id/export?format=md` route + a download button. PDF/DOCX exports are the bigger lift; tracked separately as [#73](https://github.com/Eslam93/FigureMatch/issues/73) / [#74](https://github.com/Eslam93/FigureMatch/issues/74).
 
 ### Production hardening (Phase 11 — VPC connector territory)
 
 5. **Move RDS into a private subnet + add RDS Proxy + IAM-auth.** The current `0.0.0.0/0` SG + `rds.force_ssl=1` + strong-password posture is acceptable for a demo behind custom auth with no regulated data; not production-grade. Requires an App Runner VPC connector (~$32/mo NAT or per-service VPC endpoints), so this also unlocks ElastiCache (which is provisioned in the network stack but not in the data stack — see PR #143's removal).
-6. **Redis-backed refresh-token blocklist** ([#88](https://github.com/Eslam93/MagnaCMS/issues/88)) and **idempotency middleware** ([#89](https://github.com/Eslam93/MagnaCMS/issues/89)) — both wait on the VPC connector. Today's in-memory fallback covers the demo but won't survive App Runner instance restarts.
+6. **Redis-backed refresh-token blocklist** ([#88](https://github.com/Eslam93/FigureMatch/issues/88)) and **idempotency middleware** ([#89](https://github.com/Eslam93/FigureMatch/issues/89)) — both wait on the VPC connector. Today's in-memory fallback covers the demo but won't survive App Runner instance restarts.
 7. **Job-table dedupe for image regeneration.** PR #144 added a NOWAIT lock that fails the second concurrent request fast with `409 IMAGE_GENERATION_IN_PROGRESS`, but the winner still holds the DB connection through ~20s of upstream LLM + image-gen + storage calls. The proper fix is a `generation_jobs` table with the in-flight job ID returned to subsequent callers; out of scope while the demo budget is small.
 
 ### Frontend polish I'd want before "ship to real marketing teams"
 
-8. **Loading skeletons** on the dashboard and detail modal ([#87](https://github.com/Eslam93/MagnaCMS/issues/87)). Today the dashboard shows "Loading…" text — fine for a demo, jarring in a real product.
-9. **Mobile responsive pass** ([#84](https://github.com/Eslam93/MagnaCMS/issues/84)). The layout works on a phone but the dashboard cards are awkward; needs a sweep, not a redesign.
-10. **Accessibility audit** ([#85](https://github.com/Eslam93/MagnaCMS/issues/85)). Buttons are keyboard-reachable and the form inputs have proper labels, but I haven't run axe or screen-readered the flows.
+8. **Loading skeletons** on the dashboard and detail modal ([#87](https://github.com/Eslam93/FigureMatch/issues/87)). Today the dashboard shows "Loading…" text — fine for a demo, jarring in a real product.
+9. **Mobile responsive pass** ([#84](https://github.com/Eslam93/FigureMatch/issues/84)). The layout works on a phone but the dashboard cards are awkward; needs a sweep, not a redesign.
+10. **Accessibility audit** ([#85](https://github.com/Eslam93/FigureMatch/issues/85)). Buttons are keyboard-reachable and the form inputs have proper labels, but I haven't run axe or screen-readered the flows.
 
 ### Explicitly deferred (not on the roadmap)
 

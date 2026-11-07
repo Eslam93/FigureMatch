@@ -72,14 +72,14 @@ The two largest dev-stack line items (App Runner at always-on, RDS at `db.t4g.mi
 
 ## What's next
 
-Tracked on the [GitHub issue board](https://github.com/Eslam93/MagnaCMS/issues) under labels `priority:critical` and `priority:high`. Ordered by impact:
+Tracked on the [GitHub issue board](https://github.com/Eslam93/FigureMatch/issues) under labels `priority:critical` and `priority:high`. Ordered by impact:
 
-1. **S3 image storage adapter** ([#49](https://github.com/Eslam93/MagnaCMS/issues/49)) — swaps `LocalImageStorage` for `S3ImageStorage` behind the same `IImageStorage` protocol. Removes the cross-container caveat where Fargate-seeded images don't reach App Runner. Backend-only change; the swap is a one-class edit and a config flag.
+1. **S3 image storage adapter** ([#49](https://github.com/Eslam93/FigureMatch/issues/49)) — swaps `LocalImageStorage` for `S3ImageStorage` behind the same `IImageStorage` protocol. Removes the cross-container caveat where Fargate-seeded images don't reach App Runner. Backend-only change; the swap is a one-class edit and a config flag.
 2. **CloudFront in front of S3** — public-read distribution with signed-URL option for protected images. Drops App Runner egress costs and adds CDN caching.
 3. **OIDC role for `deploy.yml`** — replaces the current manual `docker push` + `aws amplify create-deployment` flow with the existing workflow once the IAM trust relationship is wired.
-4. **Phase 11 hardening** ([#88](https://github.com/Eslam93/MagnaCMS/issues/88), [#89](https://github.com/Eslam93/MagnaCMS/issues/89), [#90](https://github.com/Eslam93/MagnaCMS/issues/90)) — Redis blocklist for refresh tokens, idempotency middleware, per-endpoint rate limit tuning. All require the VPC connector that's currently deferred.
-5. **Exports** ([#73](https://github.com/Eslam93/MagnaCMS/issues/73), [#74](https://github.com/Eslam93/MagnaCMS/issues/74), [#75](https://github.com/Eslam93/MagnaCMS/issues/75)) — `GET /content/:id/export?format=pdf|docx|markdown`. Reuses the same `rendered_text` field the dashboard previews.
-6. **Frontend polish** ([#79](https://github.com/Eslam93/MagnaCMS/issues/79)–[#87](https://github.com/Eslam93/MagnaCMS/issues/87)) — section-level error boundaries, empty states, mobile responsive audit, accessibility pass, dark mode polish, loading skeletons.
+4. **Phase 11 hardening** ([#88](https://github.com/Eslam93/FigureMatch/issues/88), [#89](https://github.com/Eslam93/FigureMatch/issues/89), [#90](https://github.com/Eslam93/FigureMatch/issues/90)) — Redis blocklist for refresh tokens, idempotency middleware, per-endpoint rate limit tuning. All require the VPC connector that's currently deferred.
+5. **Exports** ([#73](https://github.com/Eslam93/FigureMatch/issues/73), [#74](https://github.com/Eslam93/FigureMatch/issues/74), [#75](https://github.com/Eslam93/FigureMatch/issues/75)) — `GET /content/:id/export?format=pdf|docx|markdown`. Reuses the same `rendered_text` field the dashboard previews.
+6. **Frontend polish** ([#79](https://github.com/Eslam93/FigureMatch/issues/79)–[#87](https://github.com/Eslam93/FigureMatch/issues/87)) — section-level error boundaries, empty states, mobile responsive audit, accessibility pass, dark mode polish, loading skeletons.
 
 Considered but explicitly deferred to keep the surface area honest:
 

@@ -48,7 +48,7 @@ export class EdgeStack extends Stack {
     // scaffolding lands (P2.9a).
     this.amplifyApp = new CfnApp(this, "Frontend", {
       name: cfg.amplifyAppName,
-      description: `MagnaCMS frontend (${cfg.envName})`,
+      description: `FigureMatch frontend (${cfg.envName})`,
       buildSpec: [
         "version: 1",
         "applications:",
@@ -79,7 +79,7 @@ export class EdgeStack extends Stack {
         },
       ],
       tags: [
-        { key: "project", value: "magnacms" },
+        { key: "project", value: "figurematch" },
         { key: "environment", value: cfg.envName },
       ],
     });

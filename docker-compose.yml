@@ -1,4 +1,4 @@
-# MagnaCMS — local-dev orchestration.
+# FigureMatch — local-dev orchestration.
 # `docker compose up` brings up Postgres + the backend. The frontend runs
 # outside compose: `pnpm dev` in `frontend/` (see the README's Quick start).
 # Both ports are published on 127.0.0.1 only: the database uses the default
@@ -8,7 +8,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: magnacms-postgres
+    container_name: figurematch-postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-app}
       POSTGRES_USER: ${POSTGRES_USER:-app}
@@ -29,7 +29,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: magnacms-backend
+    container_name: figurematch-backend
     env_file: .env
     environment:
       # Inside the compose network, the backend talks to Postgres by

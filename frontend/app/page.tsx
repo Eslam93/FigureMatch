@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 export default function LandingPage() {
   return (
     <main className="container flex min-h-screen flex-col items-center justify-center gap-6 py-12 text-center">
-      <h1 className="text-4xl font-bold tracking-tight md:text-6xl">MagnaCMS</h1>
+      <h1 className="text-4xl font-bold tracking-tight md:text-6xl">FigureMatch</h1>
       <p className="max-w-2xl text-lg text-muted-foreground">
         AI Content Marketing Suite. Generate, manage, and improve marketing content with AI — every
         piece paired with an AI-generated image in one flow.

@@ -4,7 +4,7 @@
  *
  * Design choices:
  *
- *   - ECR repo `magnacms-${env}-backend`. Lifecycle rule keeps the
+ *   - ECR repo `figurematch-${env}-backend`. Lifecycle rule keeps the
  *     last 10 images so dev tear-down doesn't strand storage cost.
  *
  *   - App Runner service:
@@ -81,7 +81,7 @@ export interface ComputeStackProps extends StackProps {
   /**
    * CSV string of allowed CORS origins for the App Runner backend.
    * Resolved from CDK context (`-c cors_origins=...`) in
-   * `bin/magnacms.ts`; the backend's `Settings` validator rejects
+   * `bin/figurematch.ts`; the backend's `Settings` validator rejects
    * `localhost` here in any non-local environment.
    */
   corsOrigins: string;
@@ -117,7 +117,7 @@ export class ComputeStack extends Stack {
 
     // --- ECR repository ---
     this.ecrRepo = new Repository(this, "BackendRepo", {
-      repositoryName: `magnacms-${cfg.envName}-backend`,
+      repositoryName: `figurematch-${cfg.envName}-backend`,
       imageTagMutability: TagMutability.MUTABLE, // allow :latest re-tags
       removalPolicy:
         cfg.envName === "dev" ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN,
@@ -190,7 +190,7 @@ export class ComputeStack extends Stack {
       this,
       "AutoScalingConfig",
       {
-        autoScalingConfigurationName: `magnacms-${cfg.envName}-apprunner-asg`,
+        autoScalingConfigurationName: `figurematch-${cfg.envName}-apprunner-asg`,
         minSize: cfg.apprunnerMinInstances,
         maxSize: cfg.apprunnerMaxInstances,
         maxConcurrency: 80,
@@ -216,7 +216,7 @@ export class ComputeStack extends Stack {
     // Injecting the JSON value as `RDS_SECRET_ARN` would feed JSON into
     // `boto3.get_secret_value(SecretId=...)` and fail at startup.
     this.apprunnerService = new CfnService(this, "Service", {
-      serviceName: `magnacms-${cfg.envName}-backend`,
+      serviceName: `figurematch-${cfg.envName}-backend`,
       sourceConfiguration: {
         authenticationConfiguration: {
           accessRoleArn: apprunnerAccessRole.roleArn,
@@ -247,7 +247,7 @@ export class ComputeStack extends Stack {
                 value: imagesBucket.bucketName,
               },
               // CORS_ORIGINS — supplied via CDK context
-              // (`-c cors_origins=...`); enforced by bin/magnacms.ts
+              // (`-c cors_origins=...`); enforced by bin/figurematch.ts
               // so a deploy without it fails synth. The backend's
               // Settings validator rejects localhost values in
               // non-local envs.
@@ -313,7 +313,7 @@ export class ComputeStack extends Stack {
     // Runs `alembic upgrade head` as a one-off task pre-deploy.
     // No service — invoked by `aws ecs run-task` from deploy.yml.
     this.ecsCluster = new Cluster(this, "MigrationCluster", {
-      clusterName: `magnacms-${cfg.envName}-migrations`,
+      clusterName: `figurematch-${cfg.envName}-migrations`,
       vpc,
     });
 
@@ -321,7 +321,7 @@ export class ComputeStack extends Stack {
       this,
       "MigrationTask",
       {
-        family: `magnacms-${cfg.envName}-migrate`,
+        family: `figurematch-${cfg.envName}-migrate`,
         cpu: 256,
         memoryLimitMiB: 512,
       },

@@ -1,8 +1,8 @@
 {
-  "name": "magnacms-frontend",
+  "name": "figurematch-frontend",
   "version": "0.1.0",
   "private": true,
-  "description": "MagnaCMS frontend (Next.js 15, TypeScript, Tailwind, shadcn/ui)",
+  "description": "FigureMatch frontend (Next.js 15, TypeScript, Tailwind, shadcn/ui)",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
