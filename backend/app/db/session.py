@@ -91,6 +91,21 @@ async def get_db_session() -> AsyncIterator[AsyncSession]:
 DbSession = Annotated[AsyncSession, Depends(get_db_session)]
 
 
+async def end_read_transaction(session: AsyncSession) -> None:
+    """Commit `session`'s open transaction, returning its connection to the pool.
+
+    Call it right before a slow external call such as a model request. The
+    request's reads (the current user, a brand voice) autobegin a
+    transaction, and left open it sits idle in transaction on a pooled
+    connection for the whole call; about 20 concurrent generations would
+    exhaust the pool. It commits whatever the transaction holds, so use it
+    only where that is nothing, or is safe to commit early. Loaded objects
+    stay usable (`expire_on_commit=False`), and the next query begins a new
+    transaction for `get_db_session` to commit.
+    """
+    await session.commit()
+
+
 async def check_db_health() -> bool:
     """Cheap reachability probe — `SELECT 1`. Returns False on any failure."""
     try:

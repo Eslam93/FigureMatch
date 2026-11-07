@@ -6,6 +6,8 @@ database stays clean and tests are order-independent.
 
 from __future__ import annotations
 
+import uuid
+
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -288,6 +290,51 @@ async def test_refresh_reuse_revokes_entire_family(
     assert rows == []
 
 
+async def test_refresh_reuse_revocation_survives_the_401(
+    integration_client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    """The family revocation must be durable even though the replay gets a 401.
+
+    `get_db_session` rolls back on any exception, so the revocation only
+    survives because `AuthService` commits it before raising. The client
+    runs that same commit/rollback, so dropping the commit fails here.
+    """
+    register = await integration_client.post(
+        "/api/v1/auth/register",
+        json={"email": "reuse@example.com", "password": "Secret123", "full_name": "Reuse"},
+    )
+    assert register.status_code == 201, register.text
+    user_id = uuid.UUID(register.json()["user"]["id"])
+    original = register.cookies.get("refresh_token")
+    assert original is not None
+
+    rotation = await integration_client.post(
+        "/api/v1/auth/refresh",
+        cookies={"refresh_token": original},
+    )
+    assert rotation.status_code == 200, rotation.text
+
+    # Drop the rotated cookie the client stored, so only the replayed one is sent.
+    integration_client.cookies.clear()
+    replay = await integration_client.post(
+        "/api/v1/auth/refresh",
+        cookies={"refresh_token": original},
+    )
+    assert replay.status_code == 401
+    assert replay.json()["error"]["code"] == "INVALID_REFRESH_TOKEN"
+
+    # Select columns rather than entities so the values come from the
+    # database, never from the test session's identity map.
+    tokens = (
+        await db_session.execute(
+            select(RefreshToken.id, RefreshToken.revoked_at).where(RefreshToken.user_id == user_id)
+        )
+    ).all()
+    assert len(tokens) == 2  # the original and the one the rotation minted
+    assert all(token.revoked_at is not None for token in tokens)
+
+
 async def test_refresh_with_expired_token_returns_401(
     integration_client: AsyncClient,
     db_session: AsyncSession,
@@ -412,11 +459,12 @@ async def test_logout_does_not_trigger_reuse_detection(
 
 # ── concurrency: the atomic claim primitive under real parallel sessions ───
 #
-# Every other integration test in this file shares one transactional
-# session that rolls back on teardown — fast and isolated, but unable to
-# model real per-request commit visibility. The atomic UPDATE in
+# Every other integration test in this file runs inside one outer
+# transaction that rolls back on teardown (a request's commit only
+# releases a savepoint) — fast and isolated, but unable to model separate
+# transactions racing. The atomic UPDATE in
 # `RefreshTokenRepository.consume_if_active` is exactly the place where
-# the single-session model is misleading: it relies on row-level locking
+# the single-transaction model is misleading: it relies on row-level locking
 # across SEPARATE transactions. So this test deliberately bypasses the
 # `integration_client` + `db_session` fixtures and goes straight to the
 # engine, with explicit COMMITs and explicit cleanup. Slow by design;

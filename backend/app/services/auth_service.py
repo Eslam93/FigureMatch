@@ -4,7 +4,9 @@ The refresh path uses single-use rotation: the incoming token is claimed
 atomically (`consume_if_active`) and a fresh pair is issued in the same
 transaction. If the atomic claim misses but a matching row exists in
 the revoked state, that's reuse — a previously-spent token presented
-again — and the entire session family for that user is revoked.
+again — and the entire session family for that user is revoked. That
+revocation is committed before the 401 is raised, so the request's
+rollback-on-error can't undo it.
 """
 
 from __future__ import annotations
@@ -130,9 +132,11 @@ class AuthService:
         Concurrent legitimate refreshes with the same raw token are
         indistinguishable from replay-by-attacker: only one transaction
         wins the atomic claim, and the loser's view (revoked row) looks
-        identical to reuse. We treat both as compromise. The client-side
-        mitigation is request deduplication — a well-behaved SPA should
-        serialize its refresh requests behind a single in-flight promise.
+        identical to reuse. We treat both as compromise, which revokes
+        every refresh token the user holds and so signs them out on every
+        device. The client-side mitigation is request deduplication — a
+        well-behaved SPA should serialize its refresh requests across all
+        of its tabs, not just behind one tab's in-flight promise.
         """
         token_hash = hash_refresh_token(raw_refresh)
         claimed_user_id = await self._refresh_tokens.consume_if_active(token_hash)
@@ -182,7 +186,8 @@ class AuthService:
           2. Row exists, `revoked_at IS NULL`, expired → no action
              (legitimate token that the user waited too long to refresh).
           3. Row exists, revoked, AND would still be valid → reuse
-             signal. Mass-revoke the user's active token family.
+             signal. Mass-revoke the user's active token family and
+             commit it straight away.
           4. Row exists, revoked, AND already expired → no action.
              This is an old cookie from a logged-out session resurfacing
              (browser cookie cache, backup restore, etc.). The attacker
@@ -197,6 +202,9 @@ class AuthService:
         if existing.expires_at <= datetime.now(UTC):
             return
         revoked_count = await self._refresh_tokens.revoke_all_for_user(existing.user_id)
+        # Commit now: the caller raises a 401 next, and get_db_session rolls
+        # back on any exception, which would silently undo this revocation.
+        await self._session.commit()
         log.warning(
             "refresh_token_reuse_detected",
             user_id=str(existing.user_id),

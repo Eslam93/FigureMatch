@@ -11,7 +11,7 @@ import openai
 import pytest
 from openai.types.images_response import ImagesResponse, Usage, UsageInputTokensDetails
 
-from app.providers.errors import ProviderError, ProviderRetryExhausted
+from app.providers.errors import ProviderError, ProviderErrorKind, ProviderRetryExhausted
 from app.providers.image.base import ImageQuality
 from app.providers.image.openai_provider import OpenAIImageProvider, _compute_cost_usd
 
@@ -371,6 +371,15 @@ async def test_response_with_missing_b64_raises_provider_error() -> None:
 
     with pytest.raises(ProviderError, match="b64_json"):
         await provider.generate(prompt="x")
+
+
+async def test_response_with_undecodable_b64_raises_provider_error() -> None:
+    """A corrupt payload is the provider's failure, not an unhandled 500."""
+    provider = _provider_returning(_build_fake_image_response(b64="abc"))
+
+    with pytest.raises(ProviderError, match="undecodable") as excinfo:
+        await provider.generate(prompt="x")
+    assert excinfo.value.kind is ProviderErrorKind.OTHER
 
 
 # ── retry behavior ─────────────────────────────────────────────────────

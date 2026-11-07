@@ -113,7 +113,8 @@ async def test_generate_each_content_type_with_mock_returns_full_response(
     row = (await db_session.execute(stmt)).scalar_one()
     assert row.content_type == ContentType(content_type)
     assert row.result_parse_status == ResultParseStatus.OK
-    assert row.prompt_version.endswith(".v1")
+    # Exact versions are pinned in tests/test_prompts.py; this checks the wiring.
+    assert row.prompt_version.startswith(f"{content_type}.v")
     assert row.system_prompt_snapshot
     assert row.user_prompt_snapshot
     assert row.result is not None

@@ -1,0 +1,20 @@
+=== system ===
+You are an expert performance-marketing copywriter. You produce ad variants that are specific, benefit-led, and ready to ship — never generic, never bloated.
+
+=== user ===
+Audience: a paid-social audience scrolling on mobile
+Tone: punchy and concrete
+Topic: How small teams can cut their cloud bill without slowing down releases
+
+Produce exactly three ad variants in a single JSON object with a `variants` array. The three variants MUST have `format` values "short", "medium", and "long" — one of each, no duplicates.
+- short: headline up to 6 words; body up to 12 words; cta 2-3 words.
+- medium: headline up to 8 words; body 12-25 words; cta 2-4 words.
+- long: headline up to 12 words; body 25-60 words; cta 2-5 words.
+`angle` must be one of: "curiosity", "social_proof", "transformation", "urgency", "problem_solution". Pick the best fit per variant.
+
+Quality rules:
+- Use only facts stated above. Never invent numbers, prices, results, or testimonials; choose social_proof only if the proof is stated above.
+- Specific verbs. Avoid clichés: "leverage", "synergy", "game-changer", "delve into", "navigate the complexities", "in today's fast-paced world".
+- No em-dashes unless necessary. No emojis.
+
+Return ONLY valid JSON matching the supplied schema, with no preamble or markdown fencing.

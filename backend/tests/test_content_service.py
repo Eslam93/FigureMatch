@@ -21,9 +21,13 @@ from unittest.mock import AsyncMock
 import pytest
 
 from app.db.enums import ContentType, ResultParseStatus
+from app.prompts import blog_post as blog_post_prompt
+from app.providers.errors import ProviderErrorKind, ProviderIncompleteOutput
 from app.providers.llm.base import LLMResult
+from app.providers.llm.openai_provider import OpenAIChatProvider
 from app.schemas.content import GenerateRequest
 from app.services.content_service import ContentService
+from tests.scripted_openai import SENTINEL, ScriptedUpstream, chat_completion
 
 # ── fakes ──────────────────────────────────────────────────────────────
 
@@ -32,15 +36,20 @@ from app.services.content_service import ContentService
 class _RecordingSession:
     """Bare-minimum async-session stand-in.
 
-    The service calls `add → flush → refresh` on the session via the
-    repo. We capture the added row, no-op flush/refresh, and let the
-    test assert on what was persisted.
+    The service commits before each model call and calls `add → flush →
+    refresh` on the session via the repo. We capture the added row, no-op
+    commit/flush/refresh, and let the test assert on what was persisted.
+    Transaction behaviour against a real session is covered by
+    `tests/integration/test_model_call_transactions.py`.
     """
 
     added: list[Any] | None = None
 
     def __post_init__(self) -> None:
         self.added = []
+
+    async def commit(self) -> None:
+        return None
 
     def add(self, obj: Any) -> None:
         assert self.added is not None
@@ -55,6 +64,19 @@ class _RecordingSession:
         return None
 
 
+def _billed(raw_text: str, *, finish_reason: str = "stop") -> LLMResult:
+    """One call's result, with the usage every fake call reports."""
+    return LLMResult(
+        raw_text=raw_text,
+        model="fake-model-v0",
+        input_tokens=5,
+        output_tokens=7,
+        cost_usd=0.01,
+        latency_ms=1,
+        finish_reason=finish_reason,
+    )
+
+
 def _fake_provider(raw_texts: list[str]) -> AsyncMock:
     """Build an AsyncMock provider whose `.generate(...)` returns the
     given raw_texts in order.
@@ -62,20 +84,8 @@ def _fake_provider(raw_texts: list[str]) -> AsyncMock:
     Each call records token usage so we can verify the service sums
     them across attempts.
     """
-    results = [
-        LLMResult(
-            raw_text=raw,
-            model="fake-model-v0",
-            input_tokens=5,
-            output_tokens=7,
-            cost_usd=0.01,
-            latency_ms=1,
-            finish_reason="stop",
-        )
-        for raw in raw_texts
-    ]
     mock = AsyncMock()
-    mock.generate.side_effect = results
+    mock.generate.side_effect = [_billed(raw) for raw in raw_texts]
     return mock
 
 
@@ -189,9 +199,11 @@ async def test_attempt_2_corrective_retry_status_retried(content_type: ContentTy
     assert piece.input_tokens == 10
     assert piece.output_tokens == 14
     assert piece.cost_usd == Decimal("0.02")
-    # Retry call should not pass json_schema (per service contract).
-    _, second_kwargs = provider.generate.call_args_list[1]
-    assert second_kwargs["json_schema"] is None
+    # The retry keeps the first call's strict json_schema and says what failed.
+    (_, first_kwargs), (_, second_kwargs) = provider.generate.call_args_list
+    assert second_kwargs["json_schema"] is not None
+    assert second_kwargs["json_schema"] == first_kwargs["json_schema"]
+    assert "The previous reply was not valid JSON." in second_kwargs["user_prompt"]
 
 
 @pytest.mark.asyncio
@@ -238,17 +250,17 @@ async def test_prompt_snapshot_persisted_even_on_failure() -> None:
 
     assert piece.system_prompt_snapshot
     assert piece.user_prompt_snapshot
-    assert piece.prompt_version == "blog_post.v1"
+    assert piece.prompt_version == "blog_post.v2"
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "content_type,expected_version",
     [
-        (ContentType.BLOG_POST, "blog_post.v1"),
-        (ContentType.LINKEDIN_POST, "linkedin_post.v1"),
-        (ContentType.EMAIL, "email.v1"),
-        (ContentType.AD_COPY, "ad_copy.v1"),
+        (ContentType.BLOG_POST, "blog_post.v2"),
+        (ContentType.LINKEDIN_POST, "linkedin_post.v2"),
+        (ContentType.EMAIL, "email.v2"),
+        (ContentType.AD_COPY, "ad_copy.v2"),
     ],
     ids=lambda x: x.value if isinstance(x, ContentType) else x,
 )
@@ -269,7 +281,7 @@ async def test_prompt_version_pinned_per_content_type(
 @pytest.mark.asyncio
 async def test_attempt_1_sends_strict_json_schema_for_each_type() -> None:
     """First-pass call always carries the per-type strict json_schema
-    payload — the retry path is the only place it's omitted."""
+    payload; the corrective retry reuses it."""
     session = _RecordingSession()
     provider = _fake_provider([_valid_json(ContentType.LINKEDIN_POST)])
     service = ContentService(session, provider)  # type: ignore[arg-type]
@@ -282,3 +294,153 @@ async def test_attempt_1_sends_strict_json_schema_for_each_type() -> None:
     # LinkedIn schema's required keys are the discriminator we can
     # check without coupling to the exact dict identity.
     assert set(schema["required"]) == {"hook", "body", "cta", "hashtags"}
+
+
+# ── corrective retry: strict schema, failing field named ───────────────
+
+# One character over `BlogPostResult.meta_description`'s 160-character limit,
+# which strict json_schema can't express, so a strict reply can still break it.
+_TOO_LONG_META = "m" * 161
+
+
+def _blog_reply(**overrides: Any) -> str:
+    return json.dumps({**_VALID_PAYLOADS[ContentType.BLOG_POST], **overrides})
+
+
+@pytest.mark.asyncio
+async def test_corrective_retry_keeps_strict_schema_and_names_the_failing_field() -> None:
+    session = _RecordingSession()
+    provider = _fake_provider(
+        [_blog_reply(meta_description=_TOO_LONG_META), _valid_json(ContentType.BLOG_POST)]
+    )
+    service = ContentService(session, provider)  # type: ignore[arg-type]  # duck-typed fakes
+
+    piece = await service.generate(user=_user(), request=_request())
+
+    assert piece.result_parse_status == ResultParseStatus.RETRIED
+    assert piece.result == _VALID_PAYLOADS[ContentType.BLOG_POST]
+    assert piece.rendered_text.startswith("# Mocks in CI\n")
+    _, retry = provider.generate.call_args_list[1]
+    assert retry["json_schema"] == blog_post_prompt.JSON_SCHEMA["schema"]
+    assert "- meta_description: String should have at most 160 characters" in retry["user_prompt"]
+    assert "not valid JSON" not in retry["user_prompt"]
+    # The rejected value is in the echoed reply only, never in the note.
+    assert retry["user_prompt"].count(_TOO_LONG_META) == 1
+
+
+@pytest.mark.asyncio
+async def test_corrective_retry_that_fails_again_degrades_exactly_as_before() -> None:
+    session = _RecordingSession()
+    second_reply = _blog_reply(title="Second try", meta_description=_TOO_LONG_META)
+    provider = _fake_provider([_blog_reply(meta_description=_TOO_LONG_META), second_reply])
+    service = ContentService(session, provider)  # type: ignore[arg-type]  # duck-typed fakes
+
+    piece = await service.generate(user=_user(), request=_request())
+
+    assert piece.result_parse_status == ResultParseStatus.FAILED
+    assert piece.result is None
+    assert piece.rendered_text == second_reply
+    assert piece.input_tokens == 10
+    assert piece.output_tokens == 14
+    assert piece.cost_usd == Decimal("0.02")
+    assert provider.generate.await_count == 2
+    _, retry = provider.generate.call_args_list[1]
+    assert retry["json_schema"] == blog_post_prompt.JSON_SCHEMA["schema"]
+
+
+@pytest.mark.asyncio
+async def test_corrective_retry_reaches_openai_as_a_strict_structured_output_request() -> None:
+    """The same retry through the real OpenAI provider, on scripted HTTP:
+    the second request still asks for strict json_schema output."""
+    upstream = ScriptedUpstream(
+        chat_completion(_blog_reply(meta_description=_TOO_LONG_META)),
+        chat_completion(_valid_json(ContentType.BLOG_POST)),
+    )
+    provider = OpenAIChatProvider(
+        client=upstream.client(), model="gpt-5.4-mini-2026-03-17", max_retries=1
+    )
+    session = _RecordingSession()
+    service = ContentService(session, provider)  # type: ignore[arg-type]  # duck-typed session
+
+    piece = await service.generate(user=_user(), request=_request())
+
+    assert piece.result_parse_status == ResultParseStatus.RETRIED
+    assert len(upstream.requests) == 2
+    retry_body = json.loads(upstream.requests[1].content)
+    assert retry_body["response_format"] == {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "blog_post",
+            "schema": blog_post_prompt.JSON_SCHEMA["schema"],
+            "strict": True,
+        },
+    }
+    retry_user_message = retry_body["messages"][1]
+    assert retry_user_message["role"] == "user"
+    assert (
+        "- meta_description: String should have at most 160 characters"
+        in retry_user_message["content"]
+    )
+
+
+# ── corrective retry that stops short: still stage 3 ───────────────────
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("finish_reason", "kind"),
+    [
+        ("length", ProviderErrorKind.TRUNCATED),
+        ("content_filter", ProviderErrorKind.CONTENT_REJECTED),
+    ],
+)
+async def test_corrective_retry_cut_off_or_filtered_degrades_with_attempt_1(
+    finish_reason: str, kind: ProviderErrorKind
+) -> None:
+    """A strict retry that stops short raises rather than returning a reply.
+    Stage 3 still runs, as for a retry that fails to parse: the piece keeps
+    attempt 1's raw output and both calls' usage, instead of the request
+    failing after two paid calls."""
+    first_reply = _blog_reply(meta_description=_TOO_LONG_META)
+    cut_off = _billed('{"title": "Cut', finish_reason=finish_reason)
+    provider = AsyncMock()
+    provider.generate.side_effect = [
+        _billed(first_reply),
+        ProviderIncompleteOutput("stopped short", kind=kind, result=cut_off),
+    ]
+    session = _RecordingSession()
+    service = ContentService(session, provider)  # type: ignore[arg-type]  # duck-typed fakes
+
+    piece = await service.generate(user=_user(), request=_request())
+
+    assert session.added == [piece]
+    assert piece.result_parse_status == ResultParseStatus.FAILED
+    assert piece.result is None
+    assert piece.rendered_text == first_reply
+    assert piece.input_tokens == 10
+    assert piece.output_tokens == 14
+    assert piece.cost_usd == Decimal("0.02")
+
+
+@pytest.mark.asyncio
+async def test_corrective_retry_cut_off_by_openai_still_saves_the_piece() -> None:
+    """The real provider raises `ProviderIncompleteOutput` for a truncated
+    strict reply, so the cut-off retry ends in a FAILED piece, not a 502."""
+    first_reply = _blog_reply(meta_description=_TOO_LONG_META)
+    upstream = ScriptedUpstream(
+        chat_completion(first_reply),
+        chat_completion(f'{{"title": "{SENTINEL}', finish_reason="length"),
+    )
+    provider = OpenAIChatProvider(
+        client=upstream.client(), model="gpt-5.4-mini-2026-03-17", max_retries=1
+    )
+    session = _RecordingSession()
+    service = ContentService(session, provider)  # type: ignore[arg-type]  # duck-typed session
+
+    piece = await service.generate(user=_user(), request=_request())
+
+    assert len(upstream.requests) == 2
+    assert piece.result_parse_status == ResultParseStatus.FAILED
+    assert piece.rendered_text == first_reply
+    # Each scripted completion bills 10 prompt and 5 completion tokens.
+    assert (piece.input_tokens, piece.output_tokens) == (20, 10)

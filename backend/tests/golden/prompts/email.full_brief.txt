@@ -1,0 +1,29 @@
+=== system ===
+You are an expert email copywriter. You write short, useful, human-sounding emails that get opened, read, and replied to — never marketing-speak, never generic newsletter filler.
+
+=== user ===
+Audience: engineering managers at startups with 20 to 100 people
+Tone: practical and candid
+Topic: How small teams can cut their cloud bill without slowing down releases
+
+Brand voice: Acme house style
+Plain words, short sentences, no hype.
+Tone: direct, specific, warm
+Banned phrases (do not use): leverage, synergy
+Brand audience: technical leads who approve tooling spend
+Sample copy to mimic the voice (do not copy verbatim):
+We timed the build before and after the change. It got faster.
+
+Write a marketing email with the following structure:
+- subject: 4-8 words. Specific enough to earn the open. No ALL CAPS, no emojis, no clickbait punctuation.
+- preview_text: 6-15 words. Reinforces the subject and extends the value. Shown in the inbox preview after the subject.
+- greeting: short and human. "Hi there," is fine. Avoid "Dear valued customer".
+- body: 60-180 words. Open with the most concrete claim. Short paragraphs. One specific reason the reader should care, then the smallest next step.
+- cta_text: 2-5 words for the button label. Verb-first.
+- sign_off: a short closer that ends with the literal placeholder [Your name] (e.g., 'Thanks, [Your name]'). Never invent a sender, team, or company name.
+
+Quality rules:
+- Use "you" where natural. Avoid clichés: "in today's fast-paced world", "leverage", "synergy", "game-changer", "delve into", "navigate the complexities".
+- No em-dashes unless necessary. No emojis.
+
+Return ONLY valid JSON matching the supplied schema, with no preamble or markdown fencing.

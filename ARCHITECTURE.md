@@ -4,7 +4,7 @@ One-page summary of the load-bearing choices and the trade-offs behind them.
 
 > **Current state caveat:** the stack table below describes the *target* topology. The hardening pass before the deploy batch deferred a few rows explicitly:
 >
-> - **Redis** is plumbed in `.env.example` + the backend config but currently runs with `USE_REDIS=false` (in-memory fallback). The ElastiCache cluster was removed from `DataStack` until the VPC-connector + refresh-token-blocklist work in Phase 11; otherwise it was provisioned and billed but unreachable from App Runner.
+> - **Redis** is not wired in yet: the backend has no Redis settings and runs with the in-memory fallback. The ElastiCache cluster was removed from `DataStack` until the VPC-connector + refresh-token-blocklist work in Phase 11; otherwise it was provisioned and billed but unreachable from App Runner.
 > - **CloudFront for images** is deferred to the deploy batch. `IImageStorage` is the swap seam; `LocalImageStorage` runs today against the App Runner local disk, served via FastAPI's `/local-images` static mount.
 > - **The S3 image-storage adapter** also lands with the deploy batch. The backend now persists only the storage `key`; the public URL is computed at response-projection time from `IMAGES_CDN_BASE_URL`, so the S3 cutover is a config + one-class change, not a row-level data migration.
 

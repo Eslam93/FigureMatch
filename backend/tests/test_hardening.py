@@ -9,10 +9,8 @@ Coverage map for the specific failure modes flagged in external review:
     (bcrypt silently truncates beyond 72 bytes).
   - Middleware order: CORS preflight short-circuits before other middleware
     allocates work (verified via response headers).
-  - request_id propagation: echoed on the success path. Note: the
-    unhandled-exception envelope path may NOT carry request_id — that's a
-    known FastAPI-exception-machinery limitation tracked for later. Logs
-    still carry it via structlog regardless.
+  - request_id propagation: echoed on the success path. The unhandled-500
+    path is covered in `test_unhandled_errors.py`.
 """
 
 from __future__ import annotations
@@ -281,14 +279,6 @@ async def test_request_id_validator_accepts_typical_shapes() -> None:
     assert not _is_valid_incoming("has space")  # space rejected
     assert not _is_valid_incoming("has\nnewline")  # control char
     assert not _is_valid_incoming("a" * 200)  # too long
-
-
-# Note: the unhandled-exception path's request_id propagation into the JSON
-# envelope is a known limitation — Starlette's per-route exception machinery
-# runs the handler in a context where our middleware's contextvar isn't
-# reliably visible. Logs still carry request_id (structlog reads it from the
-# same contextvar, and access logging runs in the right scope). Fixing the
-# envelope path is tracked for a later hardening pass.
 
 
 # ── CORS middleware ordering (outermost short-circuits preflights) ─────

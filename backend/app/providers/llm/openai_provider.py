@@ -3,7 +3,11 @@
 Wraps the async `openai` SDK with:
   - structured-output mode via `response_format: json_schema, strict=True`
     when the caller supplies a schema
-  - exponential-backoff retry on 429 + 5xx + network timeout
+  - exponential-backoff retry on 429 + 5xx + network timeout, but never
+    on a 429 `insufficient_quota`
+  - SDK errors mapped to typed `ProviderError` kinds
+    (`app.providers.openai_errors`), with the upstream error text kept
+    in the log and out of the exception
   - per-call cost computation from `app.core.model_catalog`, with cached
     prompt tokens billed at the cached-input rate
   - structured logging of model, tokens, cost, latency, finish_reason
@@ -29,10 +33,26 @@ from openai import AsyncOpenAI
 from app.core import model_catalog
 from app.core.config import Environment, get_settings
 from app.core.logging import get_logger
-from app.providers.errors import ProviderConfigError, ProviderError, ProviderRetryExhausted
+from app.providers.errors import (
+    ProviderConfigError,
+    ProviderErrorKind,
+    ProviderIncompleteOutput,
+)
 from app.providers.llm.base import LLMResult
+from app.providers.openai_errors import (
+    OpenAIFailure,
+    classify_openai_error,
+    retry_exhausted_error,
+)
 
 log = get_logger(__name__)
+
+# On a strict-schema request, `length` truncates the JSON mid-output and
+# `content_filter` redacts content the schema required.
+_INCOMPLETE_FINISH_KINDS: Final[dict[str, ProviderErrorKind]] = {
+    "length": ProviderErrorKind.TRUNCATED,
+    "content_filter": ProviderErrorKind.CONTENT_REJECTED,
+}
 
 
 def _cached_prompt_tokens(usage: Any, prompt_tokens: int) -> int:
@@ -97,16 +117,6 @@ def _compute_cost_usd(
         + cached_input_tokens * pricing.cached_input_per_million
         + output_tokens * pricing.output_per_million
     ) / 1_000_000
-
-
-# Retry policy. The brief specifies max 3 attempts on 5xx/429; we
-# add timeout + APIConnectionError for the same reason.
-_RETRYABLE_EXCEPTIONS: Final[tuple[type[BaseException], ...]] = (
-    openai.RateLimitError,
-    openai.APITimeoutError,
-    openai.APIConnectionError,
-    openai.InternalServerError,
-)
 
 
 class OpenAIChatProvider:
@@ -184,33 +194,33 @@ class OpenAIChatProvider:
     ) -> LLMResult:
         started = time.perf_counter()
         last_exc: BaseException | None = None
+        last_failure: OpenAIFailure | None = None
 
         for attempt in range(1, self._max_retries + 1):
             try:
                 response = await self._client.chat.completions.create(**request_kwargs)
-            except _RETRYABLE_EXCEPTIONS as exc:
-                last_exc = exc
+            except openai.OpenAIError as exc:
+                failure = classify_openai_error(exc)
+                if not failure.retryable:
+                    # Auth, quota, bad request, content policy, etc.
+                    log.error(
+                        "openai_non_retryable_error",
+                        content_type=content_type,
+                        **failure.log_fields,
+                    )
+                    raise failure.error("OpenAI call") from exc
+                last_exc, last_failure = exc, failure
                 log.warning(
                     "openai_retryable_error",
                     attempt=attempt,
                     max_attempts=self._max_retries,
-                    error_type=type(exc).__name__,
-                    error=str(exc),
                     content_type=content_type,
+                    **failure.log_fields,
                 )
                 if attempt < self._max_retries:
                     await asyncio.sleep(self._backoff_seconds(attempt))
                     continue
                 break
-            except openai.OpenAIError as exc:
-                # Non-retryable (auth, bad request, content_filter, etc.)
-                log.error(
-                    "openai_non_retryable_error",
-                    error_type=type(exc).__name__,
-                    error=str(exc),
-                    content_type=content_type,
-                )
-                raise ProviderError(f"OpenAI call failed: {exc}") from exc
             else:
                 return self._build_result(
                     response,
@@ -227,9 +237,7 @@ class OpenAIChatProvider:
             content_type=content_type,
             last_error=str(last_exc),
         )
-        raise ProviderRetryExhausted(
-            f"OpenAI call exhausted {self._max_retries} retries: {last_exc}"
-        ) from last_exc
+        raise retry_exhausted_error("OpenAI call", self._max_retries, last_failure) from last_exc
 
     def _build_result(
         self,
@@ -266,26 +274,7 @@ class OpenAIChatProvider:
             finish_reason=choice.finish_reason,
         )
 
-        # When the caller asked for strict JSON schema output, any
-        # finish_reason other than "stop" means the response can't
-        # actually satisfy the schema — `length` truncates the JSON
-        # mid-output, `content_filter` redacts content the schema
-        # required. Treat these as provider failures so the service-
-        # layer fallback (P3.4 three-stage parser) can react cleanly
-        # rather than handing downstream a malformed JSON string.
-        if json_schema_supplied and choice.finish_reason not in (None, "stop"):
-            log.warning(
-                "openai_finish_reason_incomplete",
-                finish_reason=choice.finish_reason,
-                content_type=content_type,
-            )
-            raise ProviderError(
-                f"OpenAI returned finish_reason={choice.finish_reason!r} on a "
-                f"strict-JSON-schema request for content_type={content_type!r}. "
-                "The response cannot satisfy the schema."
-            )
-
-        return LLMResult(
+        result = LLMResult(
             raw_text=raw_text,
             model=response.model,
             input_tokens=input_tokens,
@@ -294,6 +283,28 @@ class OpenAIChatProvider:
             latency_ms=elapsed_ms,
             finish_reason=choice.finish_reason,
         )
+
+        # When the caller asked for strict JSON schema output, any
+        # finish_reason other than "stop" means the response can't
+        # actually satisfy the schema (see `_INCOMPLETE_FINISH_KINDS`).
+        # Raise a typed provider failure rather than hand downstream a
+        # malformed JSON string to parse. It carries the billed result,
+        # for a caller that can fall back.
+        if json_schema_supplied and choice.finish_reason not in (None, "stop"):
+            log.warning(
+                "openai_finish_reason_incomplete",
+                finish_reason=choice.finish_reason,
+                content_type=content_type,
+            )
+            raise ProviderIncompleteOutput(
+                f"OpenAI returned finish_reason={choice.finish_reason!r} on a "
+                f"strict-JSON-schema request for content_type={content_type!r}. "
+                "The response cannot satisfy the schema.",
+                kind=_INCOMPLETE_FINISH_KINDS.get(choice.finish_reason, ProviderErrorKind.OTHER),
+                result=result,
+            )
+
+        return result
 
     @staticmethod
     def _backoff_seconds(attempt: int) -> float:

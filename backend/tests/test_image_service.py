@@ -19,6 +19,7 @@ import pytest
 from app.core.exceptions import NotFoundError, ValidationError
 from app.db.enums import ImageProvider
 from app.db.models import ContentPiece
+from app.providers.errors import ProviderError, ProviderErrorKind
 from app.providers.image.base import ImageQuality, ImageResult
 from app.providers.llm.base import LLMResult
 from app.services.image_service import ImageService
@@ -235,6 +236,57 @@ async def test_happy_path_persists_image_with_is_current_true(monkeypatch) -> No
     # Two upstream calls: LLM for prompt building, then image provider.
     assert llm.generate.await_count == 1
     assert image_provider.generate.await_count == 1
+
+
+def _service_with_failing_image_provider(
+    monkeypatch: pytest.MonkeyPatch, error: Exception
+) -> ImageService:
+    image_provider = AsyncMock()
+    image_provider.generate = AsyncMock(side_effect=error)
+    service = ImageService(
+        _RecordingSession(),  # type: ignore[arg-type]  # a stand-in, not an AsyncSession
+        llm_provider=_llm_returning({"prompt": "p", "negative_prompt": "", "style_summary": "s"}),
+        image_provider=image_provider,
+        storage=_FakeStorage(),
+    )
+    piece = _piece()
+
+    async def _piece_lookup(*_a: Any, **_k: Any) -> ContentPiece:
+        return piece
+
+    monkeypatch.setattr(service._content_repo, "get_for_user", _piece_lookup)
+    return service
+
+
+@pytest.mark.asyncio
+async def test_provider_error_from_the_image_provider_propagates_unwrapped(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The service used to re-wrap it as `Image provider failed: {exc}`,
+    which carried the upstream text into the response and lost the kind."""
+    error = ProviderError("OpenAI image call failed.", kind=ProviderErrorKind.CONTENT_REJECTED)
+    service = _service_with_failing_image_provider(monkeypatch, error)
+
+    with pytest.raises(ProviderError) as excinfo:
+        await service.generate_for_content(
+            user=_user(), content_id=uuid.uuid4(), style="minimalist"
+        )
+
+    assert excinfo.value is error
+
+
+@pytest.mark.asyncio
+async def test_unexpected_image_provider_exception_is_not_passed_off_as_a_provider_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A non-provider exception is a bug: it propagates as is, to become a
+    logged 500 rather than a 502 blaming the provider."""
+    service = _service_with_failing_image_provider(monkeypatch, KeyError("b64_json"))
+
+    with pytest.raises(KeyError):
+        await service.generate_for_content(
+            user=_user(), content_id=uuid.uuid4(), style="minimalist"
+        )
 
 
 @pytest.mark.asyncio

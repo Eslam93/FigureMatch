@@ -55,7 +55,8 @@ class ILLMProvider(Protocol):
     Implementations are responsible for: (a) issuing the call, (b)
     retrying on transient failures within their configured budget, (c)
     computing cost from the response metadata, and (d) translating
-    provider-specific errors into `ProviderError` subclasses.
+    provider-specific errors into `ProviderError`s of the right `kind`,
+    without upstream error text in their messages.
 
     The `content_type` parameter is for logging/cost-attribution only —
     it doesn't change the request shape. Schema validation belongs in
@@ -80,7 +81,8 @@ class ILLMProvider(Protocol):
 
         Raises `ProviderRetryExhausted` when transient failures
         exhausted the retry budget, `ProviderConfigError` on
-        construction-time misconfiguration, and `ProviderError` for
-        all other infrastructure failures.
+        construction-time misconfiguration, `ProviderIncompleteOutput`
+        (carrying the billed result) when a strict-schema reply stopped
+        short, and `ProviderError` for all other infrastructure failures.
         """
         ...

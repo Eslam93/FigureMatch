@@ -1,11 +1,10 @@
 """Smoke tests for the four prompt modules.
 
-These don't try to lock the exact string content (that would be churny
-every time a wording is improved). They prove the contract: every
-module exports the required surface, the user prompt threads the
-provided fields into the body, and `brand_voice_block` widens the
-prompt when supplied. Slice 6 will exercise the brand-voice path more
-deeply once the brand-voice service lands.
+These prove the contract, not the wording, which
+`tests/test_prompt_goldens.py` pins against golden files: every module
+exports the required surface, the user prompt threads the provided
+fields into the body, and `brand_voice_block` widens the prompt when
+supplied.
 """
 
 from __future__ import annotations
@@ -67,10 +66,10 @@ def test_build_prompt_brand_voice_block_appears_when_supplied(module: object) ->
 @pytest.mark.parametrize(
     "module,expected_version",
     [
-        (blog_post, "blog_post.v1"),
-        (linkedin_post, "linkedin_post.v1"),
-        (email, "email.v1"),
-        (ad_copy, "ad_copy.v1"),
+        (blog_post, "blog_post.v2"),
+        (linkedin_post, "linkedin_post.v2"),
+        (email, "email.v2"),
+        (ad_copy, "ad_copy.v2"),
     ],
     ids=lambda x: getattr(x, "__name__", str(x)),
 )

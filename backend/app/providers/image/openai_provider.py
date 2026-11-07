@@ -1,6 +1,9 @@
 """OpenAI GPT Image provider (Images API, default `gpt-image-2.5-flare`).
 
-Same retry/logging contract as the chat provider. Quality maps directly
+Same retry, error-mapping and logging contract as the chat provider: SDK
+errors become typed `ProviderError` kinds (`app.providers.openai_errors`),
+so a safety-system block, for instance, is CONTENT_REJECTED, and the
+upstream error text stays in the log. Quality maps directly
 to OpenAI's `quality` parameter; size defaults to 1024×1024 (the only
 size the protocol guarantees). PNG output is requested explicitly
 because the storage layer saves every image with a `.png` extension.
@@ -18,11 +21,12 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import binascii
 import random
 import time
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Final
+from typing import Any
 
 import openai
 from openai import AsyncOpenAI
@@ -30,8 +34,13 @@ from openai import AsyncOpenAI
 from app.core import model_catalog
 from app.core.config import Environment, get_settings
 from app.core.logging import get_logger
-from app.providers.errors import ProviderConfigError, ProviderError, ProviderRetryExhausted
+from app.providers.errors import ProviderConfigError, ProviderError
 from app.providers.image.base import ImageQuality, ImageResult
+from app.providers.openai_errors import (
+    OpenAIFailure,
+    classify_openai_error,
+    retry_exhausted_error,
+)
 
 log = get_logger(__name__)
 
@@ -127,14 +136,6 @@ def _compute_cost_usd(model: str, quality: ImageQuality, usage: _ImageUsage | No
     ) / 1_000_000
 
 
-_RETRYABLE_EXCEPTIONS: Final[tuple[type[BaseException], ...]] = (
-    openai.RateLimitError,
-    openai.APITimeoutError,
-    openai.APIConnectionError,
-    openai.InternalServerError,
-)
-
-
 class OpenAIImageProvider:
     """Production image provider against OpenAI's GPT Image models."""
 
@@ -200,30 +201,27 @@ class OpenAIImageProvider:
     ) -> ImageResult:
         started = time.perf_counter()
         last_exc: BaseException | None = None
+        last_failure: OpenAIFailure | None = None
 
         for attempt in range(1, self._max_retries + 1):
             try:
                 response = await self._client.images.generate(**request_kwargs)
-            except _RETRYABLE_EXCEPTIONS as exc:
-                last_exc = exc
+            except openai.OpenAIError as exc:
+                failure = classify_openai_error(exc)
+                if not failure.retryable:
+                    log.error("openai_image_non_retryable_error", **failure.log_fields)
+                    raise failure.error("OpenAI image call") from exc
+                last_exc, last_failure = exc, failure
                 log.warning(
                     "openai_image_retryable_error",
                     attempt=attempt,
                     max_attempts=self._max_retries,
-                    error_type=type(exc).__name__,
-                    error=str(exc),
+                    **failure.log_fields,
                 )
                 if attempt < self._max_retries:
                     await asyncio.sleep(self._backoff_seconds(attempt))
                     continue
                 break
-            except openai.OpenAIError as exc:
-                log.error(
-                    "openai_image_non_retryable_error",
-                    error_type=type(exc).__name__,
-                    error=str(exc),
-                )
-                raise ProviderError(f"OpenAI image call failed: {exc}") from exc
             else:
                 return self._build_result(
                     response,
@@ -241,8 +239,8 @@ class OpenAIImageProvider:
             elapsed_ms=elapsed_ms,
             last_error=str(last_exc),
         )
-        raise ProviderRetryExhausted(
-            f"OpenAI image call exhausted {self._max_retries} retries: {last_exc}"
+        raise retry_exhausted_error(
+            "OpenAI image call", self._max_retries, last_failure
         ) from last_exc
 
     def _build_result(
@@ -261,7 +259,10 @@ class OpenAIImageProvider:
         b64 = response.data[0].b64_json
         if not b64:
             raise ProviderError("OpenAI image response missing b64_json payload.")
-        image_bytes = base64.b64decode(b64)
+        try:
+            image_bytes = base64.b64decode(b64)
+        except binascii.Error as exc:
+            raise ProviderError("OpenAI image response had an undecodable b64_json.") from exc
         usage = _read_usage(getattr(response, "usage", None))
         cost_usd = _compute_cost_usd(self._model, quality, usage)
 

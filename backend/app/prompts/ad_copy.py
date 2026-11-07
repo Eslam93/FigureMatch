@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import Any, Final
 
-PROMPT_VERSION: Final[str] = "ad_copy.v1"
+PROMPT_VERSION: Final[str] = "ad_copy.v2"
 
 SYSTEM_PROMPT: Final[str] = (
     "You are an expert performance-marketing copywriter. You produce "
@@ -97,7 +97,9 @@ def build_prompt(
         "best fit per variant.\n"
         "\n"
         "Quality rules:\n"
-        "- Specific verbs. Concrete numbers when honest. Avoid "
+        "- Use only facts stated above. Never invent numbers, prices, results, "
+        "or testimonials; choose social_proof only if the proof is stated above.\n"
+        "- Specific verbs. Avoid "
         'clichés: "leverage", "synergy", "game-changer", '
         '"delve into", "navigate the complexities", "in today\'s '
         'fast-paced world".\n'
@@ -109,9 +111,10 @@ def build_prompt(
     return SYSTEM_PROMPT, user_prompt
 
 
+# Follows the note that says what was wrong with the previous reply
+# (`app/services/corrective_retry.py`), so it doesn't claim a cause itself.
 CORRECTIVE_RETRY_INSTRUCTION: Final[str] = (
-    "Your previous response was not valid JSON matching the required "
-    "schema. Return ONLY valid JSON shaped as "
+    "Return ONLY valid JSON shaped as "
     '{"variants": [{"format": "short"|"medium"|"long", "angle": ..., '
     '"headline": ..., "body": ..., "cta": ...}, ...]} with one of each '
     "format. No preamble, no markdown fencing, no explanation."

@@ -31,7 +31,7 @@ from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import ConflictError, NotFoundError, ProviderError, ValidationError
+from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.core.logging import get_logger
 from app.db.enums import ImageProvider
 from app.db.models import ContentPiece, GeneratedImage, User
@@ -99,7 +99,10 @@ class ImageService:
           owned by the caller.
         - `ValidationError` if the style is unknown or the upstream
           content failed parsing (no usable rendered text to summarize).
-        - `ProviderError` on upstream image-provider failures.
+        - `app.providers.errors.ProviderError`, unwrapped, when the LLM
+          or image provider fails; its `kind` picks the response.
+        Anything else the providers raise is a bug and propagates as is,
+        to become a logged 500.
         """
         if style not in image_prompt_builder.SUPPORTED_STYLES:
             raise ValidationError(
@@ -154,16 +157,10 @@ class ImageService:
             positive_prompt = (
                 f"{positive_prompt}\n\nAvoid: {prompt_outcome.payload.negative_prompt.strip()}"
             )
-        try:
-            image_result = await self._image.generate(
-                prompt=positive_prompt,
-                quality=default_image_quality(),
-            )
-        except ProviderError:
-            raise
-        except Exception as exc:  # pragma: no cover — defensive
-            log.error("image_provider_unexpected_error", error=str(exc))
-            raise ProviderError(f"Image provider failed: {exc}") from exc
+        image_result = await self._image.generate(
+            prompt=positive_prompt,
+            quality=default_image_quality(),
+        )
 
         # --- Step 3: upload bytes; record current ---
         # Storage returns a key only. The URL is derived at projection

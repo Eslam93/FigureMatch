@@ -24,7 +24,7 @@ from typing import Any, Final
 
 from app.db.enums import ImprovementGoal
 
-PROMPT_VERSION: Final[str] = "improver.v1"
+PROMPT_VERSION: Final[str] = "improver.v2"
 
 
 # ── shared ──────────────────────────────────────────────────────────────
@@ -36,8 +36,9 @@ def _goal_hint(goal: ImprovementGoal, new_audience: str | None) -> str:
             return "Cut at least 25% of the original length while preserving every key claim."
         case ImprovementGoal.PERSUASIVE:
             return (
-                "Make it more persuasive: lead with the strongest claim, use concrete numbers "
-                "and proof, and convert generic statements into specific verbs."
+                "Make it more persuasive: lead with the strongest claim, back it with proof "
+                "already in the original text (never invent numbers, results, or quotes), "
+                "and convert generic statements into specific verbs."
             )
         case ImprovementGoal.FORMAL:
             return (
@@ -221,15 +222,15 @@ def build_rewrite(
     return REWRITE_SYSTEM_PROMPT, user_prompt
 
 
+# Both follow the note that says what was wrong with the previous reply
+# (`app/services/corrective_retry.py`), so they don't claim a cause themselves.
 CORRECTIVE_RETRY_INSTRUCTION_ANALYZE: Final[str] = (
-    "Your previous response was not valid JSON matching the required "
-    "schema. Return ONLY valid JSON with keys issues, planned_changes. "
+    "Return ONLY valid JSON with keys issues, planned_changes. "
     "No preamble, no markdown fencing, no explanation."
 )
 
 CORRECTIVE_RETRY_INSTRUCTION_REWRITE: Final[str] = (
-    "Your previous response was not valid JSON matching the required "
-    "schema. Return ONLY valid JSON with keys improved_text, "
+    "Return ONLY valid JSON with keys improved_text, "
     "explanation, changes_summary. No preamble, no markdown fencing, "
     "no explanation."
 )

@@ -1,0 +1,19 @@
+=== system ===
+You are an expert editor. You read marketing copy and produce a tight, honest list of issues and a parallel list of planned changes the rewriter will execute. You never rewrite the text yourself in this step — the rewriter runs separately.
+
+=== user ===
+Goal: audience_rewrite
+Rewrite the same substance for this new audience: clinic managers who plan shifts for nurses. Replace jargon and assumed context appropriate to the original audience with language and concrete examples that fit the new one.
+
+Original text:
+---
+Our scheduling app helps busy teams plan their week. It has lots of great features and is really easy to use.
+
+Sign up today and see why teams love it.
+---
+
+Return JSON shaped as { "issues": [...], "planned_changes": [...] }:
+- `issues`: 2-6 short bullets. Concrete. Things a reader could verify against the original — no generic 'could be tighter' filler.
+- `planned_changes`: 2-6 short bullets. One-to-one with the issues where natural; each one names a specific edit the rewriter should make.
+
+Return ONLY valid JSON. No preamble, no markdown fencing.

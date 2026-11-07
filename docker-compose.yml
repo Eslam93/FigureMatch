@@ -1,7 +1,9 @@
 # MagnaCMS — local-dev orchestration.
-# `docker-compose up` brings up Postgres + Redis + stub backend + stub frontend.
-# Real backend/frontend builds arrive in P1.1 / P4.1 — at that point the `image:`
-# lines on `backend` and `frontend` get replaced with `build:` directives.
+# `docker compose up` brings up Postgres + the backend. The frontend runs
+# outside compose: `pnpm dev` in `frontend/` (see the README's Quick start).
+# Both ports are published on 127.0.0.1 only: the database uses the default
+# app/app password and the `local` environment accepts placeholder secrets,
+# so neither service should be reachable from other machines on the network.
 
 services:
   postgres:
@@ -12,7 +14,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-app}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-app}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -23,21 +25,6 @@ services:
       start_period: 10s
     restart: unless-stopped
 
-  redis:
-    image: redis:7-alpine
-    container_name: magnacms-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-      start_period: 5s
-    restart: unless-stopped
-
   backend:
     build:
       context: ./backend
@@ -45,17 +32,14 @@ services:
     container_name: magnacms-backend
     env_file: .env
     environment:
-      # Inside the compose network, the backend talks to Postgres/Redis
-      # by service name; these overrides win against any .env values that
+      # Inside the compose network, the backend talks to Postgres by
+      # service name; this override wins against any .env value that
       # assumed a host-side reach.
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:-app}@postgres:5432/${POSTGRES_DB:-app}
-      REDIS_URL: redis://redis:6379/0
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     depends_on:
       postgres:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; r=urllib.request.urlopen('http://localhost:8000/api/v1/health',timeout=3); sys.exit(0 if r.status==200 else 1)"]
@@ -65,21 +49,5 @@ services:
       start_period: 15s
     restart: unless-stopped
 
-  # Placeholder until P4.1 ships the Next.js Dockerfile.
-  frontend:
-    image: nginx:alpine
-    container_name: magnacms-frontend-stub
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost/"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    restart: unless-stopped
-
 volumes:
   postgres_data:
-  redis_data:

@@ -16,6 +16,8 @@ from unittest.mock import AsyncMock
 import pytest
 
 from app.db.enums import ImprovementGoal
+from app.prompts import improver as improver_prompt
+from app.providers.errors import ProviderErrorKind, ProviderIncompleteOutput
 from app.providers.llm.base import LLMResult
 from app.schemas.improvement import ImproveRequest
 from app.services.improver_service import ImproverService
@@ -28,6 +30,11 @@ class _RecordingSession:
     def __post_init__(self) -> None:
         self.added = []
 
+    async def commit(self) -> None:
+        # The service ends the read transaction before each model call; see
+        # tests/integration/test_model_call_transactions.py for a real session.
+        return None
+
     def add(self, obj: Any) -> None:
         assert self.added is not None
         self.added.append(obj)
@@ -39,22 +46,32 @@ class _RecordingSession:
         return None
 
 
+def _billed(raw_text: str, *, finish_reason: str = "stop") -> LLMResult:
+    """One call's result, with the usage every fake call reports."""
+    return LLMResult(
+        raw_text=raw_text,
+        model="fake-llm",
+        input_tokens=10,
+        output_tokens=20,
+        cost_usd=0.005,
+        latency_ms=1,
+        finish_reason=finish_reason,
+    )
+
+
 def _llm_with(raw_texts: list[str]) -> AsyncMock:
-    results = [
-        LLMResult(
-            raw_text=raw,
-            model="fake-llm",
-            input_tokens=10,
-            output_tokens=20,
-            cost_usd=0.005,
-            latency_ms=1,
-            finish_reason="stop",
-        )
-        for raw in raw_texts
-    ]
     mock = AsyncMock()
-    mock.generate.side_effect = results
+    mock.generate.side_effect = [_billed(raw) for raw in raw_texts]
     return mock
+
+
+def _cut_off() -> ProviderIncompleteOutput:
+    """What the provider raises for a strict reply cut off at the length limit."""
+    return ProviderIncompleteOutput(
+        "stopped short",
+        kind=ProviderErrorKind.TRUNCATED,
+        result=_billed('{"improved_text": "Cut', finish_reason="length"),
+    )
 
 
 _VALID_ANALYZE = json.dumps(
@@ -158,6 +175,94 @@ async def test_rewrite_total_failure_degrades_with_fallback_summary() -> None:
     assert record.improved_text == "still bad"
     assert any("fallback mode" in line for line in record.explanation)
     assert record.changes_summary["length_change_pct"] == 0.0
+
+
+@pytest.mark.asyncio
+async def test_analyze_retry_keeps_strict_schema_and_names_the_failing_field() -> None:
+    not_a_list = json.dumps({"issues": "Buries the lede.", "planned_changes": ["Lead with it."]})
+    session = _RecordingSession()
+    provider = _llm_with([not_a_list, _VALID_ANALYZE, _VALID_REWRITE])
+    service = ImproverService(session, provider)  # type: ignore[arg-type]  # duck-typed fakes
+
+    await service.improve(user=_user(), request=_request())
+
+    _, retry = provider.generate.call_args_list[1]
+    assert retry["content_type"] == "improver_analysis"
+    assert retry["json_schema"] == improver_prompt.ANALYZE_JSON_SCHEMA["schema"]
+    assert "- issues: Input should be a valid list" in retry["user_prompt"]
+    assert "not valid JSON" not in retry["user_prompt"]
+    # The retried plan is the one the rewriter executes.
+    _, rewrite = provider.generate.call_args_list[2]
+    assert "- Move the strongest claim first." in rewrite["user_prompt"]
+
+
+@pytest.mark.asyncio
+async def test_rewrite_retry_keeps_strict_schema_and_names_the_failing_field() -> None:
+    empty_text = json.dumps({**json.loads(_VALID_REWRITE), "improved_text": ""})
+    session = _RecordingSession()
+    provider = _llm_with([_VALID_ANALYZE, empty_text, _VALID_REWRITE])
+    service = ImproverService(session, provider)  # type: ignore[arg-type]  # duck-typed fakes
+
+    record = await service.improve(user=_user(), request=_request())
+
+    assert record.improved_text.startswith("An improved piece")
+    _, retry = provider.generate.call_args_list[2]
+    assert retry["content_type"] == "improver_rewrite"
+    assert retry["json_schema"] == improver_prompt.REWRITE_JSON_SCHEMA["schema"]
+    assert "- improved_text: String should have at least 1 character" in retry["user_prompt"]
+    assert "not valid JSON" not in retry["user_prompt"]
+
+
+@pytest.mark.asyncio
+async def test_analyze_reply_stays_lenient_about_extra_keys_and_item_types() -> None:
+    """Behaviour the hand-written analyze parser had: unknown keys are
+    ignored and non-string items are kept as strings, with no retry."""
+    loose = json.dumps({"issues": ["Too long."], "planned_changes": [42], "notes": "extra"})
+    session = _RecordingSession()
+    provider = _llm_with([loose, _VALID_REWRITE])
+    service = ImproverService(session, provider)  # type: ignore[arg-type]  # duck-typed fakes
+
+    await service.improve(user=_user(), request=_request())
+
+    assert provider.generate.await_count == 2
+    _, rewrite = provider.generate.call_args_list[1]
+    assert "- 42" in rewrite["user_prompt"]
+
+
+@pytest.mark.asyncio
+async def test_cut_off_analyze_retry_degrades_to_an_empty_plan() -> None:
+    """A strict retry that stops short raises rather than returning a reply;
+    the analyze stage still degrades, and its usage still counts."""
+    session = _RecordingSession()
+    provider = AsyncMock()
+    provider.generate.side_effect = [_billed("bad json"), _cut_off(), _billed(_VALID_REWRITE)]
+    service = ImproverService(session, provider)  # type: ignore[arg-type]  # duck-typed fakes
+
+    record = await service.improve(user=_user(), request=_request())
+
+    assert record.improved_text.startswith("An improved piece")
+    _, rewrite = provider.generate.call_args_list[2]
+    assert "- (no explicit plan provided; rewrite to match the goal)" in rewrite["user_prompt"]
+    assert record.input_tokens == 30
+    assert record.output_tokens == 60
+    assert record.cost_usd == Decimal("0.015")
+
+
+@pytest.mark.asyncio
+async def test_cut_off_rewrite_retry_degrades_with_attempt_1_reply() -> None:
+    session = _RecordingSession()
+    provider = AsyncMock()
+    provider.generate.side_effect = [_billed(_VALID_ANALYZE), _billed("bad json"), _cut_off()]
+    service = ImproverService(session, provider)  # type: ignore[arg-type]  # duck-typed fakes
+
+    record = await service.improve(user=_user(), request=_request())
+
+    assert session.added == [record]
+    assert record.improved_text == "bad json"
+    assert any("fallback mode" in line for line in record.explanation)
+    assert record.input_tokens == 30
+    assert record.output_tokens == 60
+    assert record.cost_usd == Decimal("0.015")
 
 
 @pytest.mark.asyncio

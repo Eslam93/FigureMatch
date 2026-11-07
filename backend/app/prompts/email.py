@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Any, Final
 
-PROMPT_VERSION: Final[str] = "email.v1"
+PROMPT_VERSION: Final[str] = "email.v2"
 
 SYSTEM_PROMPT: Final[str] = (
     "You are an expert email copywriter. You write short, useful, "
@@ -75,7 +75,9 @@ def build_prompt(
         "Short paragraphs. One specific reason the reader should "
         "care, then the smallest next step.\n"
         "- cta_text: 2-5 words for the button label. Verb-first.\n"
-        "- sign_off: a short closer (e.g., '— The Magna team').\n"
+        "- sign_off: a short closer that ends with the literal placeholder "
+        "[Your name] (e.g., 'Thanks, [Your name]'). Never invent a sender, "
+        "team, or company name.\n"
         "\n"
         "Quality rules:\n"
         '- Use "you" where natural. Avoid clichés: "in today\'s '
@@ -89,9 +91,10 @@ def build_prompt(
     return SYSTEM_PROMPT, user_prompt
 
 
+# Follows the note that says what was wrong with the previous reply
+# (`app/services/corrective_retry.py`), so it doesn't claim a cause itself.
 CORRECTIVE_RETRY_INSTRUCTION: Final[str] = (
-    "Your previous response was not valid JSON matching the required "
-    "schema. Return ONLY valid JSON with keys subject, preview_text, "
+    "Return ONLY valid JSON with keys subject, preview_text, "
     "greeting, body, cta_text, sign_off. No preamble, no markdown "
     "fencing, no explanation."
 )

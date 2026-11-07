@@ -8,6 +8,8 @@ The factory selects an implementation based on `AI_PROVIDER_MODE`.
 from app.providers.errors import (
     ProviderConfigError,
     ProviderError,
+    ProviderErrorKind,
+    ProviderIncompleteOutput,
     ProviderRetryExhausted,
 )
 from app.providers.factory import get_image_provider, get_llm_provider
@@ -22,6 +24,8 @@ __all__ = [
     "LLMResult",
     "ProviderConfigError",
     "ProviderError",
+    "ProviderErrorKind",
+    "ProviderIncompleteOutput",
     "ProviderRetryExhausted",
     "get_image_provider",
     "get_llm_provider",

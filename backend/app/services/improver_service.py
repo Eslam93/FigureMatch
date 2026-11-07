@@ -10,32 +10,38 @@ Stage breakdown:
 
   ANALYZE
     1. strict json_schema → ok, return planned_changes
-    2. corrective retry without json_schema
+    2. corrective retry, same strict json_schema, naming what failed
     3. degraded — return an empty planned_changes list (the rewriter
        still runs; the goal hint alone drives it)
 
   REWRITE
     1. strict json_schema → ok, return ImprovementResult
-    2. corrective retry without json_schema
+    2. corrective retry, same strict json_schema, naming what failed
     3. degraded — `improved_text` falls back to the model's raw output;
        `explanation` defaults to a single "Rewrite returned in fallback
        mode" line; `changes_summary` defaults to zero deltas. The
        persisted row is still useful — the user sees something — and
        Sentry logs the drift.
+
+A corrective retry that comes back cut off or filtered
+(`ProviderIncompleteOutput`) counts as a failed retry: its usage is still
+summed, and stage 3 falls back to attempt 1's raw output.
 """
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from decimal import Decimal
+from typing import Any
 
-from pydantic import ValidationError as PydanticValidationError
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import get_logger
 from app.db.models import Improvement, User
+from app.db.session import end_read_transaction
 from app.prompts import improver as improver_prompt
+from app.providers.errors import ProviderIncompleteOutput
 from app.providers.llm.base import ILLMProvider
 from app.repositories.improvement_repository import ImprovementRepository
 from app.schemas.improvement import (
@@ -43,11 +49,20 @@ from app.schemas.improvement import (
     ImprovementResult,
     ImproveRequest,
 )
+from app.services.corrective_retry import ParseFailure, corrective_user_prompt, parse_reply
 
 log = get_logger(__name__)
 
 
 # ── intermediate types ─────────────────────────────────────────────────
+
+
+class _AnalyzeReply(BaseModel):
+    """The analyze stage's reply. Lenient: unknown keys are ignored and
+    list items of any type are kept, as strings, by the caller."""
+
+    issues: list[Any]
+    planned_changes: list[Any]
 
 
 @dataclass(frozen=True)
@@ -119,41 +134,54 @@ class ImproverService:
             goal=request.goal,
             new_audience=request.new_audience,
         )
+        json_schema = improver_prompt.ANALYZE_JSON_SCHEMA["schema"]
 
+        # Don't hold the current-user read's transaction through the call.
+        await end_read_transaction(self._session)
         attempt1 = await self._provider.generate(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
-            json_schema=improver_prompt.ANALYZE_JSON_SCHEMA["schema"],
+            json_schema=json_schema,
             content_type="improver_analysis",
         )
-        parsed = _parse_analyze(attempt1.raw_text)
+        parsed = parse_reply(attempt1.raw_text, _AnalyzeReply)
         total_in = attempt1.input_tokens
         total_out = attempt1.output_tokens
         total_cost = Decimal(str(attempt1.cost_usd))
 
-        if parsed is None:
+        if isinstance(parsed, ParseFailure):
             log.warning("improver_analyze_parse_failed_attempt_1", model=attempt1.model)
-            retry_prompt = (
-                f"{user_prompt}\n\n"
-                f"Previous response (invalid):\n{attempt1.raw_text}\n\n"
-                f"{improver_prompt.CORRECTIVE_RETRY_INSTRUCTION_ANALYZE}"
-            )
-            attempt2 = await self._provider.generate(
-                system_prompt=system_prompt,
-                user_prompt=retry_prompt,
-                json_schema=None,
-                content_type="improver_analysis",
-            )
-            parsed = _parse_analyze(attempt2.raw_text)
+            await end_read_transaction(self._session)
+            try:
+                attempt2 = await self._provider.generate(
+                    system_prompt=system_prompt,
+                    user_prompt=corrective_user_prompt(
+                        user_prompt=user_prompt,
+                        previous_reply=attempt1.raw_text,
+                        failure=parsed,
+                        instruction=improver_prompt.CORRECTIVE_RETRY_INSTRUCTION_ANALYZE,
+                    ),
+                    json_schema=json_schema,
+                    content_type="improver_analysis",
+                )
+            except ProviderIncompleteOutput as exc:
+                # Billed, but cut off or filtered: degrade as if it hadn't parsed.
+                attempt2 = exc.result
+            else:
+                parsed = parse_reply(attempt2.raw_text, _AnalyzeReply)
             total_in += attempt2.input_tokens
             total_out += attempt2.output_tokens
             total_cost += Decimal(str(attempt2.cost_usd))
 
-            if parsed is None:
+            if isinstance(parsed, ParseFailure):
                 log.warning("improver_analyze_parse_failed_attempt_2", model=attempt2.model)
 
-        planned: list[str] = parsed["planned_changes"] if parsed else []
-        issues: list[str] = parsed["issues"] if parsed else []
+        if isinstance(parsed, ParseFailure):
+            planned: list[str] = []
+            issues: list[str] = []
+        else:
+            planned = [str(change) for change in parsed.planned_changes]
+            issues = [str(issue) for issue in parsed.issues]
         return _AnalyzeOutcome(
             planned_changes=planned,
             issues=issues,
@@ -176,39 +204,47 @@ class ImproverService:
             planned_changes=planned_changes,
             new_audience=request.new_audience,
         )
+        json_schema = improver_prompt.REWRITE_JSON_SCHEMA["schema"]
 
+        await end_read_transaction(self._session)
         attempt1 = await self._provider.generate(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
-            json_schema=improver_prompt.REWRITE_JSON_SCHEMA["schema"],
+            json_schema=json_schema,
             content_type="improver_rewrite",
         )
-        parsed = _parse_rewrite(attempt1.raw_text)
+        parsed = parse_reply(attempt1.raw_text, ImprovementResult)
         total_in = attempt1.input_tokens
         total_out = attempt1.output_tokens
         total_cost = Decimal(str(attempt1.cost_usd))
         raw_for_fallback = attempt1.raw_text
 
-        if parsed is None:
+        if isinstance(parsed, ParseFailure):
             log.warning("improver_rewrite_parse_failed_attempt_1", model=attempt1.model)
-            retry_prompt = (
-                f"{user_prompt}\n\n"
-                f"Previous response (invalid):\n{attempt1.raw_text}\n\n"
-                f"{improver_prompt.CORRECTIVE_RETRY_INSTRUCTION_REWRITE}"
-            )
-            attempt2 = await self._provider.generate(
-                system_prompt=system_prompt,
-                user_prompt=retry_prompt,
-                json_schema=None,
-                content_type="improver_rewrite",
-            )
-            parsed = _parse_rewrite(attempt2.raw_text)
+            await end_read_transaction(self._session)
+            try:
+                attempt2 = await self._provider.generate(
+                    system_prompt=system_prompt,
+                    user_prompt=corrective_user_prompt(
+                        user_prompt=user_prompt,
+                        previous_reply=attempt1.raw_text,
+                        failure=parsed,
+                        instruction=improver_prompt.CORRECTIVE_RETRY_INSTRUCTION_REWRITE,
+                    ),
+                    json_schema=json_schema,
+                    content_type="improver_rewrite",
+                )
+            except ProviderIncompleteOutput as exc:
+                # Billed, but cut off or filtered: fall back to attempt 1's reply.
+                attempt2 = exc.result
+            else:
+                parsed = parse_reply(attempt2.raw_text, ImprovementResult)
+                raw_for_fallback = attempt2.raw_text
             total_in += attempt2.input_tokens
             total_out += attempt2.output_tokens
             total_cost += Decimal(str(attempt2.cost_usd))
-            raw_for_fallback = attempt2.raw_text
 
-            if parsed is None:
+            if isinstance(parsed, ParseFailure):
                 log.warning("improver_rewrite_parse_failed_attempt_2", model=attempt2.model)
                 parsed = ImprovementResult(
                     improved_text=raw_for_fallback or request.original_text,
@@ -239,36 +275,3 @@ class ImproverService:
             output_tokens=total_out,
             cost_usd=total_cost,
         )
-
-
-# ── parsers ────────────────────────────────────────────────────────────
-
-
-def _parse_analyze(raw: str) -> dict[str, list[str]] | None:
-    """Parse an analyze response. Returns dict on success; None on failure."""
-    try:
-        payload = json.loads(raw)
-    except json.JSONDecodeError:
-        return None
-    if not isinstance(payload, dict):
-        return None
-    issues = payload.get("issues")
-    changes = payload.get("planned_changes")
-    if not isinstance(issues, list) or not isinstance(changes, list):
-        return None
-    issues = [str(x) for x in issues]
-    changes = [str(x) for x in changes]
-    return {"issues": issues, "planned_changes": changes}
-
-
-def _parse_rewrite(raw: str) -> ImprovementResult | None:
-    """Parse a rewrite response. Returns ImprovementResult on success;
-    None on JSON or schema failure."""
-    try:
-        payload = json.loads(raw)
-    except json.JSONDecodeError:
-        return None
-    try:
-        return ImprovementResult.model_validate(payload)
-    except PydanticValidationError:
-        return None
