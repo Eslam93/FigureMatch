@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
+import { AI_ERROR_MESSAGES } from "@/lib/errors/ai-codes";
 
 import type { GenerateInput } from "@/lib/validation/generate";
 import type { components } from "@/types/api";
@@ -15,7 +16,11 @@ export type ContentDetailResponse = components["schemas"]["ContentDetailResponse
 
 type ErrorEnvelope = components["schemas"]["ErrorEnvelope"];
 
+// generateErrorMessage serves the content, image, improver and
+// brand-voice hooks. The AI-provider codes come from the shared
+// module; the other entries belong to these endpoints.
 const FRIENDLY_MESSAGES: Record<string, string> = {
+  ...AI_ERROR_MESSAGES,
   VALIDATION_FAILED: "Some fields don't look right — check the form.",
   RATE_LIMITED: "You've hit the per-minute generate limit. Wait a minute and try again.",
   MISSING_TOKEN: "Your session has expired. Sign in again.",

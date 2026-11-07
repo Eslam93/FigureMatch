@@ -3,9 +3,9 @@
 import { useMeQuery } from "@/lib/auth/use-me";
 
 /**
- * Account page. Shows the basics the user can verify at a glance —
- * full preferences (theme, default content type, notification opt-ins)
- * are out of scope for the current demo window.
+ * Account page. Shows the basics the user can verify at a glance.
+ * Preferences (theme, default content type, notification opt-ins) are
+ * not built yet.
  */
 export default function SettingsPage() {
   const me = useMeQuery();
@@ -14,7 +14,8 @@ export default function SettingsPage() {
       <header className="space-y-1">
         <h1 className="text-2xl font-bold">Account</h1>
         <p className="text-sm text-muted-foreground">
-          Read-only for now. Full settings (theme, defaults, notifications) ship after the demo.
+          Read-only for now. Preferences such as theme, defaults and notifications are not available
+          yet.
         </p>
       </header>
       {me.isPending ? (

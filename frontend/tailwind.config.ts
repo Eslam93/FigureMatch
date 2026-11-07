@@ -1,3 +1,4 @@
+import typography from "@tailwindcss/typography";
 import type { Config } from "tailwindcss";
 
 import { v2Tokens } from "./components/ui/v2/tailwind.tokens";
@@ -61,7 +62,9 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
+  // `prose` styles the Markdown that generated content renders through
+  // react-markdown (generate-result, content-detail-dialog).
+  plugins: [typography],
 };
 
 export default config;

@@ -144,7 +144,7 @@ export function ContentDetailDialog({ contentId, onClose }: Props) {
           ) : null}
 
           <div
-            className="prose prose-sm dark:prose-invert max-w-none"
+            className="prose prose-sm max-w-none dark:prose-invert"
             data-testid="content-detail-body"
           >
             {detail.data.result_parse_status === "failed" ? (

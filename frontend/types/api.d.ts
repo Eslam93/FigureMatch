@@ -66,6 +66,9 @@ export interface paths {
   "/health": {
     get: operations["health"];
   };
+  "/meta": {
+    get: operations["meta"];
+  };
 }
 
 export interface components {
@@ -339,6 +342,12 @@ export interface components {
       sample_text?: string | null;
       target_audience?: string | null;
     };
+
+    // ── System ───────────────────────────────────────────────────
+    MetaResponse: {
+      provider_mode: "openai" | "mock" | "bedrock";
+      app_version: string;
+    };
   };
 }
 
@@ -429,6 +438,15 @@ export interface operations {
             environment: string;
             dependencies: Record<string, string>;
           };
+        };
+      };
+    };
+  };
+  meta: {
+    responses: {
+      200: {
+        content: {
+          "application/json": components["schemas"]["MetaResponse"];
         };
       };
     };

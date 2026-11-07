@@ -18,10 +18,6 @@ export default function LandingPage() {
           <Link href="/register">Create account</Link>
         </Button>
       </div>
-      <p className="mt-12 text-sm text-muted-foreground">
-        Try the demo with <span className="font-mono text-foreground">demo@magnacms.dev</span> /{" "}
-        <span className="font-mono text-foreground">DemoPass123</span>.
-      </p>
     </main>
   );
 }

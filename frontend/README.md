@@ -17,7 +17,7 @@ Protected (gated by the `(protected)` route group):
 - `/generate` — content generation form (blog post / LinkedIn post / email / ad copy) with staged loader
 - `/improve` — analyze → rewrite chain with side-by-side diff and "what changed" rationale
 - `/brand-voices` — CRUD for style presets that inject into generation prompts
-- `/usage`, `/settings` — read-only surfaces for account info and usage data
+- `/settings` — read-only account details
 
 ## Local commands
 
@@ -49,7 +49,6 @@ The repo root [`README.md`](../README.md) §10 has the full deploy recipe.
 ```bash
 # .env.local
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1   # default
-NEXT_PUBLIC_SENTRY_DSN=                                  # optional; SDK no-ops if unset
 ```
 
 In production, Amplify environment configuration sets `NEXT_PUBLIC_API_BASE_URL` to the App Runner URL.
@@ -71,7 +70,6 @@ frontend/
 │   │   ├── generate/page.tsx
 │   │   ├── improve/page.tsx
 │   │   ├── brand-voices/page.tsx
-│   │   ├── usage/page.tsx
 │   │   └── settings/page.tsx
 │   ├── layout.tsx             # root layout with <Providers>
 │   ├── page.tsx               # landing
@@ -87,6 +85,8 @@ frontend/
 │   ├── content/hooks.ts       # content list / detail / generate / delete / restore mutations
 │   ├── brand-voices/hooks.ts  # brand-voice CRUD mutations
 │   ├── improve/hooks.ts       # analyze→rewrite mutation
+│   ├── errors/ai-codes.ts     # friendly copy for AI-provider error codes, shared by the hooks
+│   ├── meta/hooks.ts          # GET /meta: provider mode for the mock-mode banner
 │   ├── validation/            # Zod schemas mirrored from backend
 │   └── utils.ts               # cn() helper
 ├── types/api.d.ts             # OpenAPI-generated types (regenerate via `pnpm gen:api`)
@@ -98,4 +98,4 @@ frontend/
 
 ## Testing
 
-Unit + component tests live in [`tests/`](./tests). They mock the API hooks at the module level and exercise components in isolation. Run with `pnpm test`; CI runs the same. Playwright E2E is on the backlog ([#86](https://github.com/Eslam93/MagnaCMS/issues/86)) but not wired yet — for end-to-end smoke today, the live demo URL is the integration test.
+Unit + component tests live in [`tests/`](./tests). They mock the API hooks at the module level and exercise components in isolation. Run with `pnpm test`; CI runs the same. Playwright E2E is on the backlog ([#86](https://github.com/Eslam93/MagnaCMS/issues/86)) but not wired yet.
