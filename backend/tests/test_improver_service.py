@@ -17,6 +17,7 @@ import pytest
 
 from app.db.enums import ImprovementGoal
 from app.prompts import improver as improver_prompt
+from app.providers.errors import ProviderErrorKind, ProviderIncompleteOutput
 from app.providers.llm.base import LLMResult
 from app.schemas.improvement import ImproveRequest
 from app.services.improver_service import ImproverService
@@ -45,22 +46,32 @@ class _RecordingSession:
         return None
 
 
+def _billed(raw_text: str, *, finish_reason: str = "stop") -> LLMResult:
+    """One call's result, with the usage every fake call reports."""
+    return LLMResult(
+        raw_text=raw_text,
+        model="fake-llm",
+        input_tokens=10,
+        output_tokens=20,
+        cost_usd=0.005,
+        latency_ms=1,
+        finish_reason=finish_reason,
+    )
+
+
 def _llm_with(raw_texts: list[str]) -> AsyncMock:
-    results = [
-        LLMResult(
-            raw_text=raw,
-            model="fake-llm",
-            input_tokens=10,
-            output_tokens=20,
-            cost_usd=0.005,
-            latency_ms=1,
-            finish_reason="stop",
-        )
-        for raw in raw_texts
-    ]
     mock = AsyncMock()
-    mock.generate.side_effect = results
+    mock.generate.side_effect = [_billed(raw) for raw in raw_texts]
     return mock
+
+
+def _cut_off() -> ProviderIncompleteOutput:
+    """What the provider raises for a strict reply cut off at the length limit."""
+    return ProviderIncompleteOutput(
+        "stopped short",
+        kind=ProviderErrorKind.TRUNCATED,
+        result=_billed('{"improved_text": "Cut', finish_reason="length"),
+    )
 
 
 _VALID_ANALYZE = json.dumps(
@@ -216,6 +227,42 @@ async def test_analyze_reply_stays_lenient_about_extra_keys_and_item_types() -> 
     assert provider.generate.await_count == 2
     _, rewrite = provider.generate.call_args_list[1]
     assert "- 42" in rewrite["user_prompt"]
+
+
+@pytest.mark.asyncio
+async def test_cut_off_analyze_retry_degrades_to_an_empty_plan() -> None:
+    """A strict retry that stops short raises rather than returning a reply;
+    the analyze stage still degrades, and its usage still counts."""
+    session = _RecordingSession()
+    provider = AsyncMock()
+    provider.generate.side_effect = [_billed("bad json"), _cut_off(), _billed(_VALID_REWRITE)]
+    service = ImproverService(session, provider)  # type: ignore[arg-type]  # duck-typed fakes
+
+    record = await service.improve(user=_user(), request=_request())
+
+    assert record.improved_text.startswith("An improved piece")
+    _, rewrite = provider.generate.call_args_list[2]
+    assert "- (no explicit plan provided; rewrite to match the goal)" in rewrite["user_prompt"]
+    assert record.input_tokens == 30
+    assert record.output_tokens == 60
+    assert record.cost_usd == Decimal("0.015")
+
+
+@pytest.mark.asyncio
+async def test_cut_off_rewrite_retry_degrades_with_attempt_1_reply() -> None:
+    session = _RecordingSession()
+    provider = AsyncMock()
+    provider.generate.side_effect = [_billed(_VALID_ANALYZE), _billed("bad json"), _cut_off()]
+    service = ImproverService(session, provider)  # type: ignore[arg-type]  # duck-typed fakes
+
+    record = await service.improve(user=_user(), request=_request())
+
+    assert session.added == [record]
+    assert record.improved_text == "bad json"
+    assert any("fallback mode" in line for line in record.explanation)
+    assert record.input_tokens == 30
+    assert record.output_tokens == 60
+    assert record.cost_usd == Decimal("0.015")
 
 
 @pytest.mark.asyncio

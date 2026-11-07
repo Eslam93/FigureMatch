@@ -22,6 +22,10 @@ Stage breakdown:
        mode" line; `changes_summary` defaults to zero deltas. The
        persisted row is still useful — the user sees something — and
        Sentry logs the drift.
+
+A corrective retry that comes back cut off or filtered
+(`ProviderIncompleteOutput`) counts as a failed retry: its usage is still
+summed, and stage 3 falls back to attempt 1's raw output.
 """
 
 from __future__ import annotations
@@ -37,6 +41,7 @@ from app.core.logging import get_logger
 from app.db.models import Improvement, User
 from app.db.session import end_read_transaction
 from app.prompts import improver as improver_prompt
+from app.providers.errors import ProviderIncompleteOutput
 from app.providers.llm.base import ILLMProvider
 from app.repositories.improvement_repository import ImprovementRepository
 from app.schemas.improvement import (
@@ -147,18 +152,23 @@ class ImproverService:
         if isinstance(parsed, ParseFailure):
             log.warning("improver_analyze_parse_failed_attempt_1", model=attempt1.model)
             await end_read_transaction(self._session)
-            attempt2 = await self._provider.generate(
-                system_prompt=system_prompt,
-                user_prompt=corrective_user_prompt(
-                    user_prompt=user_prompt,
-                    previous_reply=attempt1.raw_text,
-                    failure=parsed,
-                    instruction=improver_prompt.CORRECTIVE_RETRY_INSTRUCTION_ANALYZE,
-                ),
-                json_schema=json_schema,
-                content_type="improver_analysis",
-            )
-            parsed = parse_reply(attempt2.raw_text, _AnalyzeReply)
+            try:
+                attempt2 = await self._provider.generate(
+                    system_prompt=system_prompt,
+                    user_prompt=corrective_user_prompt(
+                        user_prompt=user_prompt,
+                        previous_reply=attempt1.raw_text,
+                        failure=parsed,
+                        instruction=improver_prompt.CORRECTIVE_RETRY_INSTRUCTION_ANALYZE,
+                    ),
+                    json_schema=json_schema,
+                    content_type="improver_analysis",
+                )
+            except ProviderIncompleteOutput as exc:
+                # Billed, but cut off or filtered: degrade as if it hadn't parsed.
+                attempt2 = exc.result
+            else:
+                parsed = parse_reply(attempt2.raw_text, _AnalyzeReply)
             total_in += attempt2.input_tokens
             total_out += attempt2.output_tokens
             total_cost += Decimal(str(attempt2.cost_usd))
@@ -212,22 +222,27 @@ class ImproverService:
         if isinstance(parsed, ParseFailure):
             log.warning("improver_rewrite_parse_failed_attempt_1", model=attempt1.model)
             await end_read_transaction(self._session)
-            attempt2 = await self._provider.generate(
-                system_prompt=system_prompt,
-                user_prompt=corrective_user_prompt(
-                    user_prompt=user_prompt,
-                    previous_reply=attempt1.raw_text,
-                    failure=parsed,
-                    instruction=improver_prompt.CORRECTIVE_RETRY_INSTRUCTION_REWRITE,
-                ),
-                json_schema=json_schema,
-                content_type="improver_rewrite",
-            )
-            parsed = parse_reply(attempt2.raw_text, ImprovementResult)
+            try:
+                attempt2 = await self._provider.generate(
+                    system_prompt=system_prompt,
+                    user_prompt=corrective_user_prompt(
+                        user_prompt=user_prompt,
+                        previous_reply=attempt1.raw_text,
+                        failure=parsed,
+                        instruction=improver_prompt.CORRECTIVE_RETRY_INSTRUCTION_REWRITE,
+                    ),
+                    json_schema=json_schema,
+                    content_type="improver_rewrite",
+                )
+            except ProviderIncompleteOutput as exc:
+                # Billed, but cut off or filtered: fall back to attempt 1's reply.
+                attempt2 = exc.result
+            else:
+                parsed = parse_reply(attempt2.raw_text, ImprovementResult)
+                raw_for_fallback = attempt2.raw_text
             total_in += attempt2.input_tokens
             total_out += attempt2.output_tokens
             total_cost += Decimal(str(attempt2.cost_usd))
-            raw_for_fallback = attempt2.raw_text
 
             if isinstance(parsed, ParseFailure):
                 log.warning("improver_rewrite_parse_failed_attempt_2", model=attempt2.model)

@@ -22,11 +22,12 @@ import pytest
 
 from app.db.enums import ContentType, ResultParseStatus
 from app.prompts import blog_post as blog_post_prompt
+from app.providers.errors import ProviderErrorKind, ProviderIncompleteOutput
 from app.providers.llm.base import LLMResult
 from app.providers.llm.openai_provider import OpenAIChatProvider
 from app.schemas.content import GenerateRequest
 from app.services.content_service import ContentService
-from tests.scripted_openai import ScriptedUpstream, chat_completion
+from tests.scripted_openai import SENTINEL, ScriptedUpstream, chat_completion
 
 # ── fakes ──────────────────────────────────────────────────────────────
 
@@ -63,6 +64,19 @@ class _RecordingSession:
         return None
 
 
+def _billed(raw_text: str, *, finish_reason: str = "stop") -> LLMResult:
+    """One call's result, with the usage every fake call reports."""
+    return LLMResult(
+        raw_text=raw_text,
+        model="fake-model-v0",
+        input_tokens=5,
+        output_tokens=7,
+        cost_usd=0.01,
+        latency_ms=1,
+        finish_reason=finish_reason,
+    )
+
+
 def _fake_provider(raw_texts: list[str]) -> AsyncMock:
     """Build an AsyncMock provider whose `.generate(...)` returns the
     given raw_texts in order.
@@ -70,20 +84,8 @@ def _fake_provider(raw_texts: list[str]) -> AsyncMock:
     Each call records token usage so we can verify the service sums
     them across attempts.
     """
-    results = [
-        LLMResult(
-            raw_text=raw,
-            model="fake-model-v0",
-            input_tokens=5,
-            output_tokens=7,
-            cost_usd=0.01,
-            latency_ms=1,
-            finish_reason="stop",
-        )
-        for raw in raw_texts
-    ]
     mock = AsyncMock()
-    mock.generate.side_effect = results
+    mock.generate.side_effect = [_billed(raw) for raw in raw_texts]
     return mock
 
 
@@ -379,3 +381,66 @@ async def test_corrective_retry_reaches_openai_as_a_strict_structured_output_req
         "- meta_description: String should have at most 160 characters"
         in retry_user_message["content"]
     )
+
+
+# ── corrective retry that stops short: still stage 3 ───────────────────
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("finish_reason", "kind"),
+    [
+        ("length", ProviderErrorKind.TRUNCATED),
+        ("content_filter", ProviderErrorKind.CONTENT_REJECTED),
+    ],
+)
+async def test_corrective_retry_cut_off_or_filtered_degrades_with_attempt_1(
+    finish_reason: str, kind: ProviderErrorKind
+) -> None:
+    """A strict retry that stops short raises rather than returning a reply.
+    Stage 3 still runs, as for a retry that fails to parse: the piece keeps
+    attempt 1's raw output and both calls' usage, instead of the request
+    failing after two paid calls."""
+    first_reply = _blog_reply(meta_description=_TOO_LONG_META)
+    cut_off = _billed('{"title": "Cut', finish_reason=finish_reason)
+    provider = AsyncMock()
+    provider.generate.side_effect = [
+        _billed(first_reply),
+        ProviderIncompleteOutput("stopped short", kind=kind, result=cut_off),
+    ]
+    session = _RecordingSession()
+    service = ContentService(session, provider)  # type: ignore[arg-type]  # duck-typed fakes
+
+    piece = await service.generate(user=_user(), request=_request())
+
+    assert session.added == [piece]
+    assert piece.result_parse_status == ResultParseStatus.FAILED
+    assert piece.result is None
+    assert piece.rendered_text == first_reply
+    assert piece.input_tokens == 10
+    assert piece.output_tokens == 14
+    assert piece.cost_usd == Decimal("0.02")
+
+
+@pytest.mark.asyncio
+async def test_corrective_retry_cut_off_by_openai_still_saves_the_piece() -> None:
+    """The real provider raises `ProviderIncompleteOutput` for a truncated
+    strict reply, so the cut-off retry ends in a FAILED piece, not a 502."""
+    first_reply = _blog_reply(meta_description=_TOO_LONG_META)
+    upstream = ScriptedUpstream(
+        chat_completion(first_reply),
+        chat_completion(f'{{"title": "{SENTINEL}', finish_reason="length"),
+    )
+    provider = OpenAIChatProvider(
+        client=upstream.client(), model="gpt-5.4-mini-2026-03-17", max_retries=1
+    )
+    session = _RecordingSession()
+    service = ContentService(session, provider)  # type: ignore[arg-type]  # duck-typed session
+
+    piece = await service.generate(user=_user(), request=_request())
+
+    assert len(upstream.requests) == 2
+    assert piece.result_parse_status == ResultParseStatus.FAILED
+    assert piece.rendered_text == first_reply
+    # Each scripted completion bills 10 prompt and 5 completion tokens.
+    assert (piece.input_tokens, piece.output_tokens) == (20, 10)

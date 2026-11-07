@@ -14,7 +14,12 @@ import openai
 import pytest
 from structlog.testing import capture_logs
 
-from app.providers.errors import ProviderError, ProviderErrorKind, ProviderRetryExhausted
+from app.providers.errors import (
+    ProviderError,
+    ProviderErrorKind,
+    ProviderIncompleteOutput,
+    ProviderRetryExhausted,
+)
 from app.providers.image.openai_provider import OpenAIImageProvider
 from app.providers.llm.openai_provider import OpenAIChatProvider
 from app.providers.openai_errors import classify_openai_error, retry_exhausted_error
@@ -198,6 +203,12 @@ async def test_incomplete_strict_schema_output_becomes_a_typed_error(
     assert excinfo.value.kind is kind
     assert len(upstream.requests) == 1
     assert SENTINEL not in str(excinfo.value)
+    # The call was billed, so the error carries its result for a caller's fallback.
+    assert isinstance(excinfo.value, ProviderIncompleteOutput)
+    billed = excinfo.value.result
+    assert (billed.input_tokens, billed.output_tokens) == (10, 5)
+    assert billed.cost_usd > 0
+    assert billed.finish_reason == finish_reason
 
 
 async def test_transient_failures_are_retried_until_one_succeeds() -> None:

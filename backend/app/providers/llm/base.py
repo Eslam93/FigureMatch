@@ -81,7 +81,8 @@ class ILLMProvider(Protocol):
 
         Raises `ProviderRetryExhausted` when transient failures
         exhausted the retry budget, `ProviderConfigError` on
-        construction-time misconfiguration, and `ProviderError` for
-        all other infrastructure failures.
+        construction-time misconfiguration, `ProviderIncompleteOutput`
+        (carrying the billed result) when a strict-schema reply stopped
+        short, and `ProviderError` for all other infrastructure failures.
         """
         ...

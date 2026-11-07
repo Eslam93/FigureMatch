@@ -33,7 +33,11 @@ from openai import AsyncOpenAI
 from app.core import model_catalog
 from app.core.config import Environment, get_settings
 from app.core.logging import get_logger
-from app.providers.errors import ProviderConfigError, ProviderError, ProviderErrorKind
+from app.providers.errors import (
+    ProviderConfigError,
+    ProviderErrorKind,
+    ProviderIncompleteOutput,
+)
 from app.providers.llm.base import LLMResult
 from app.providers.openai_errors import (
     OpenAIFailure,
@@ -270,25 +274,7 @@ class OpenAIChatProvider:
             finish_reason=choice.finish_reason,
         )
 
-        # When the caller asked for strict JSON schema output, any
-        # finish_reason other than "stop" means the response can't
-        # actually satisfy the schema (see `_INCOMPLETE_FINISH_KINDS`).
-        # Raise a typed provider failure rather than hand downstream a
-        # malformed JSON string to parse.
-        if json_schema_supplied and choice.finish_reason not in (None, "stop"):
-            log.warning(
-                "openai_finish_reason_incomplete",
-                finish_reason=choice.finish_reason,
-                content_type=content_type,
-            )
-            raise ProviderError(
-                f"OpenAI returned finish_reason={choice.finish_reason!r} on a "
-                f"strict-JSON-schema request for content_type={content_type!r}. "
-                "The response cannot satisfy the schema.",
-                kind=_INCOMPLETE_FINISH_KINDS.get(choice.finish_reason, ProviderErrorKind.OTHER),
-            )
-
-        return LLMResult(
+        result = LLMResult(
             raw_text=raw_text,
             model=response.model,
             input_tokens=input_tokens,
@@ -297,6 +283,28 @@ class OpenAIChatProvider:
             latency_ms=elapsed_ms,
             finish_reason=choice.finish_reason,
         )
+
+        # When the caller asked for strict JSON schema output, any
+        # finish_reason other than "stop" means the response can't
+        # actually satisfy the schema (see `_INCOMPLETE_FINISH_KINDS`).
+        # Raise a typed provider failure rather than hand downstream a
+        # malformed JSON string to parse. It carries the billed result,
+        # for a caller that can fall back.
+        if json_schema_supplied and choice.finish_reason not in (None, "stop"):
+            log.warning(
+                "openai_finish_reason_incomplete",
+                finish_reason=choice.finish_reason,
+                content_type=content_type,
+            )
+            raise ProviderIncompleteOutput(
+                f"OpenAI returned finish_reason={choice.finish_reason!r} on a "
+                f"strict-JSON-schema request for content_type={content_type!r}. "
+                "The response cannot satisfy the schema.",
+                kind=_INCOMPLETE_FINISH_KINDS.get(choice.finish_reason, ProviderErrorKind.OTHER),
+                result=result,
+            )
+
+        return result
 
     @staticmethod
     def _backoff_seconds(attempt: int) -> float:

@@ -18,10 +18,12 @@ The fallback is non-negotiable (PROJECT_BRIEF §7.0):
   3. Attempt 3 — on second failure, persist the raw model output as
                  `rendered_text` with `result = None`,
                  `result_parse_status = FAILED`. Sentry-warn so we notice
-                 drift without crashing the user.
+                 drift without crashing the user. A retry that comes back
+                 cut off or filtered (`ProviderIncompleteOutput`) has no
+                 usable output, so attempt 1's raw output is kept instead.
 
-Aggregate token usage from both calls; cost is the sum of both
-`LLMResult.cost_usd` values (zero for mock).
+Aggregate token usage from both calls, a cut-off retry's included; cost is
+the sum of both `LLMResult.cost_usd` values (zero for mock).
 """
 
 from __future__ import annotations
@@ -43,6 +45,7 @@ from app.prompts import ad_copy as ad_copy_prompt
 from app.prompts import blog_post as blog_post_prompt
 from app.prompts import email as email_prompt
 from app.prompts import linkedin_post as linkedin_post_prompt
+from app.providers.errors import ProviderIncompleteOutput
 from app.providers.llm.base import ILLMProvider, LLMResult
 from app.repositories.brand_voice_repository import BrandVoiceRepository
 from app.repositories.content_repository import ContentRepository
@@ -235,20 +238,26 @@ class ContentService:
                 user_id=str(user.id),
                 model=model_id,
             )
-            attempt2 = await self._call_corrective_retry(
-                system_prompt=system_prompt,
-                user_prompt=user_prompt,
-                previous_raw=attempt1.raw_text,
-                failure=outcome.failure,
-                json_schema=bundle.json_schema["schema"],
-                content_type=request.content_type,
-                corrective_instruction=bundle.corrective_retry_instruction,
-            )
-            outcome = self._try_parse(
-                attempt2.raw_text,
-                ResultParseStatus.RETRIED,
-                result_model=bundle.result_model,
-            )
+            try:
+                attempt2 = await self._call_corrective_retry(
+                    system_prompt=system_prompt,
+                    user_prompt=user_prompt,
+                    previous_raw=attempt1.raw_text,
+                    failure=outcome.failure,
+                    json_schema=bundle.json_schema["schema"],
+                    content_type=request.content_type,
+                    corrective_instruction=bundle.corrective_retry_instruction,
+                )
+            except ProviderIncompleteOutput as exc:
+                # Billed, but cut off or filtered: there's no reply to parse,
+                # so stage 3 degrades with attempt 1's.
+                attempt2 = exc.result
+            else:
+                outcome = self._try_parse(
+                    attempt2.raw_text,
+                    ResultParseStatus.RETRIED,
+                    result_model=bundle.result_model,
+                )
             total_input += attempt2.input_tokens
             total_output += attempt2.output_tokens
             total_cost += Decimal(str(attempt2.cost_usd))
@@ -260,6 +269,7 @@ class ContentService:
                     content_type=request.content_type.value,
                     user_id=str(user.id),
                     model=model_id,
+                    finish_reason=attempt2.finish_reason,
                 )
 
         # Render canonical text when we have structured output; otherwise

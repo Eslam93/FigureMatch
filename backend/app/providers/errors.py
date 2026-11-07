@@ -15,6 +15,10 @@ not request-shaped errors.
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.providers.llm.base import LLMResult
 
 
 class ProviderErrorKind(StrEnum):
@@ -52,6 +56,19 @@ class ProviderError(Exception):
         if kind is not None:
             self.kind = kind
         self.retry_after_seconds = retry_after_seconds
+
+
+class ProviderIncompleteOutput(ProviderError):
+    """The model answered, and the call was billed, but its reply stops
+    short of the requested JSON schema: cut off at the length limit
+    (`TRUNCATED`), filtered (`CONTENT_REJECTED`) or ended for another
+    reason (`OTHER`). `result` is that reply with its usage, so a caller
+    that can fall back, like the corrective retry, still records the cost.
+    """
+
+    def __init__(self, message: str, *, kind: ProviderErrorKind, result: LLMResult) -> None:
+        super().__init__(message, kind=kind)
+        self.result = result
 
 
 class ProviderRetryExhausted(ProviderError):

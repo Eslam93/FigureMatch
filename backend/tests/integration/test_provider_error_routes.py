@@ -3,11 +3,13 @@
 The real OpenAI providers serve the real routes against scripted HTTP
 answers (`tests/scripted_openai.py`). Every scripted failure carries a
 sentinel that must not appear in any response. Backoff is zero and the
-providers get three attempts.
+providers get three attempts. A corrective retry that comes back cut off is
+the exception: the piece degrades instead of the request failing.
 """
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -135,6 +137,45 @@ async def test_generate_reports_upstream_failures_safely(
     _assert_safe_error(response, status=status, code=code)
     assert response.headers.get("retry-after") == retry_after
     assert len(upstream.requests) == requests
+
+
+async def test_generate_degrades_when_the_corrective_retry_is_cut_off(
+    integration_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Only attempt 1 cut off fails the request. A cut-off corrective retry
+    still saves the piece as FAILED, with attempt 1's reply, never the
+    retry's partial output."""
+    first_reply = json.dumps(
+        {
+            "title": "T",
+            "meta_description": "m" * 161,  # one over BlogPostResult's limit
+            "intro": "I",
+            "sections": [{"heading": "H", "body": "B"}],
+            "conclusion": "C",
+            "suggested_tags": ["t"],
+        }
+    )
+    upstream = ScriptedUpstream(
+        chat_completion(first_reply),
+        chat_completion(f'{{"title": "{SENTINEL}', finish_reason="length"),
+    )
+    monkeypatch.setattr(
+        "app.api.v1.routers.content.get_llm_provider", lambda: _chat_provider(upstream)
+    )
+    auth = await _register(integration_client)
+
+    response = await integration_client.post(
+        "/api/v1/content/generate",
+        headers=auth,
+        json={"content_type": "blog_post", "topic": "Scripted upstream failures"},
+    )
+
+    assert response.status_code == 200, response.text
+    assert SENTINEL not in response.text
+    body = response.json()
+    assert body["result_parse_status"] == "failed"
+    assert body["rendered_text"] == first_reply
+    assert len(upstream.requests) == 2
 
 
 async def test_improve_reports_a_content_policy_block_safely(
