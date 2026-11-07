@@ -1,0 +1,52 @@
+# Weekly check that the OpenAI models this app ships with are still alive
+# and priced.
+#
+# Why this exists: OpenAI shut down gpt-image-1 on 2026-10-23 while it was
+# still the default image model here, and nothing noticed until image
+# generation broke. This job checks the configured (in CI: shipped default)
+# text and image models against backend/app/core/model_catalog.py (prices
+# and shutdown dates) and against OpenAI's deprecations page, and fails if
+# a model is unknown, unpriced, shut down, shutting down within 30 days, or
+# listed as deprecated. It also fails when the page can't be fetched or
+# parsed, or no longer shows the models the catalog already records as shut
+# down, so a blind check never passes quietly.
+name: model-lifecycle
+
+on:
+  schedule:
+    - cron: '17 6 * * 1' # Mondays 06:17 UTC
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'backend/app/core/model_catalog.py'
+      - 'backend/app/scripts/check_model_lifecycle.py'
+      - 'backend/app/core/config.py'
+      - '.github/workflows/model-lifecycle.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  check-models:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: latest
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Check configured models against the catalog and OpenAI's deprecations page
+        run: uv run python -m app.scripts.check_model_lifecycle --days 30

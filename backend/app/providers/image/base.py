@@ -17,7 +17,7 @@ class ImageQuality(StrEnum):
     """Quality tier requested from the image provider.
 
     Maps to provider-specific configuration:
-    - OpenAI `gpt-image-1`: `quality="low" | "medium" | "high"`
+    - OpenAI GPT Image models: `quality="low" | "medium" | "high"`
     - Bedrock Nova Canvas: `low → standard`, `medium/high → premium`
 
     `low` is the dev/CI default. `medium` is the production default for
@@ -47,9 +47,9 @@ class ImageResult:
     latency_ms: int
     prompt_used: str
     """The final prompt as sent to the provider. May include
-    constraint folding (e.g., `gpt-image-1` doesn't accept a separate
-    `negative_prompt`, so callers fold constraints into the positive
-    prompt). Storing this lets us reproduce the call later."""
+    constraint folding (e.g., OpenAI's GPT Image models don't accept a
+    separate `negative_prompt`, so callers fold constraints into the
+    positive prompt). Storing this lets us reproduce the call later."""
 
 
 class IImageProvider(Protocol):

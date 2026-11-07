@@ -20,6 +20,8 @@ dependencies = [
     "openai>=1.50,<2",
     "sentry-sdk[fastapi]>=2.18,<3",
     "boto3>=1.35,<2",
+    # app/scripts/check_model_lifecycle.py fetches OpenAI's deprecations page.
+    "httpx>=0.27,<1",
 ]
 
 [dependency-groups]
@@ -27,7 +29,6 @@ dev = [
     "pytest>=8.3,<9",
     "pytest-asyncio>=0.24,<1",
     "pytest-cov>=6.0,<7",
-    "httpx>=0.27,<1",
     "ruff>=0.7,<1",
     "mypy>=1.13,<2",
 ]

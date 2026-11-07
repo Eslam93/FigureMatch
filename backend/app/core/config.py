@@ -6,6 +6,9 @@ is treated as protected. A model validator rejects weak JWT secrets,
 missing OpenAI keys, and `AI_PROVIDER_MODE` values that aren't
 production-ready, so a misconfigured deploy refuses to boot rather than
 silently running with insecure defaults or serving canned content.
+Another refuses OpenAI model ids that OpenAI has shut down (in every
+environment) or that `app/core/model_catalog.py` can't price (outside
+`local`), so a dead or unpriced model fails at boot, not after a paid call.
 """
 
 from __future__ import annotations
@@ -15,12 +18,16 @@ import binascii
 import math
 import re
 from collections import Counter
+from datetime import date
 from enum import StrEnum
 from functools import lru_cache
 from typing import Annotated, Literal
 
 from pydantic import BeforeValidator, Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+from app.core import model_catalog
+from app.core.model_catalog import ModelKind, ModelStatus
 
 
 class Environment(StrEnum):
@@ -155,6 +162,71 @@ def _is_weak_jwt_secret(value: str) -> str | None:
     )
 
 
+def _openai_model_problem(
+    env_var: str,
+    model_id: str,
+    kind: ModelKind,
+    *,
+    environment: Environment,
+    on: date,
+) -> str | None:
+    """Why `model_id` can't be configured in `env_var`, or None if it can.
+
+    A model OpenAI has shut down fails in every environment, `local`
+    included: no call to it can succeed. Unknown, wrong-kind and unpriced
+    models are tolerated in `local` so a dev can try a new id (the
+    providers then log a warning and record zero cost); anywhere else they
+    fail here instead of after the first paid API call.
+    """
+    status = model_catalog.classify(model_id, kind, on=on)
+    if status is ModelStatus.OK:
+        return None
+    if status is ModelStatus.UNKNOWN:
+        if environment == Environment.LOCAL:
+            return None
+        return (
+            f"{env_var}={model_id!r} is not in app/core/model_catalog.py, so "
+            f"its calls can't be priced (environment={environment.value}). "
+            "Add the model to app/core/model_catalog.py with verified prices "
+            "from OpenAI's docs before deploying with it."
+        )
+    entry = model_catalog.MODEL_CATALOG[model_id]
+    if status is ModelStatus.RETIRED:
+        shut_down = (
+            f"{env_var}={model_id!r} was shut down by OpenAI on "
+            f"{entry.shutdown_on} (see {entry.source_url}), so every call to it fails."
+        )
+        if entry.kind != kind:
+            # The catalog's replacement is of the dead model's kind, so it
+            # would be just as wrong for this slot.
+            return (
+                f"{shut_down} It is also catalogued as kind={entry.kind!r}, but "
+                f"{env_var} needs kind={kind!r}: set "
+                f"{env_var}={shipped_openai_model(kind)}, the shipped default."
+            )
+        return (
+            f"{shut_down} Set {env_var}={entry.replacement}, the catalog's suggested replacement."
+        )
+    if environment == Environment.LOCAL:
+        return None
+    if status is ModelStatus.WRONG_KIND:
+        return (
+            f"{env_var}={model_id!r} is catalogued as kind={entry.kind!r}, "
+            f"but {env_var} needs kind={kind!r} "
+            f"(environment={environment.value})."
+        )
+    message = (
+        f"{env_var}={model_id!r} has no verified price in "
+        f"app/core/model_catalog.py (environment={environment.value})"
+    )
+    if entry.shutdown_on is not None:
+        message += (
+            f"; OpenAI shuts it down on {entry.shutdown_on}. "
+            f"Set {env_var}={entry.replacement} instead"
+        )
+    return message + "."
+
+
 class Settings(BaseSettings):
     """Application settings. Singleton, accessed via `get_settings()`."""
 
@@ -181,7 +253,7 @@ class Settings(BaseSettings):
     # --- OpenAI ---
     openai_api_key: SecretStr | None = None
     openai_text_model: str = "gpt-5.4-mini-2026-03-17"
-    openai_image_model: str = "gpt-image-1"
+    openai_image_model: str = "gpt-image-2.5-flare"
     openai_image_quality: str = "medium"
     openai_timeout_seconds: int = 60
     openai_max_retries: int = 3
@@ -293,6 +365,31 @@ class Settings(BaseSettings):
             )
         return self
 
+    @model_validator(mode="after")
+    def _reject_unusable_openai_models(self) -> Settings:
+        """Refuse to boot on an OpenAI model that can't work or can't be
+        priced, rather than finding out after the first paid call.
+
+        Only `AI_PROVIDER_MODE=openai` calls these models, so mock and
+        bedrock modes skip the check. Declared after the secrets /
+        provider-mode validator so its error messages keep precedence.
+        The per-environment rules live in `_openai_model_problem`.
+        """
+        if self.ai_provider_mode != AIProviderMode.OPENAI:
+            return self
+        on = model_catalog.today()
+        slots: tuple[tuple[str, str, ModelKind], ...] = (
+            ("OPENAI_TEXT_MODEL", self.openai_text_model, "text"),
+            ("OPENAI_IMAGE_MODEL", self.openai_image_model, "image"),
+        )
+        for env_var, model_id, kind in slots:
+            problem = _openai_model_problem(
+                env_var, model_id, kind, environment=self.environment, on=on
+            )
+            if problem is not None:
+                raise ValueError(problem)
+        return self
+
     # NOTE: this validator runs LAST (declaration order matters for
     # Pydantic v2 `model_validator(mode="after")`). Putting it after
     # the secrets / provider-mode checks keeps the existing tests
@@ -319,6 +416,12 @@ class Settings(BaseSettings):
                 "(e.g., https://<your-app>.amplifyapp.com)."
             )
         return self
+
+
+def shipped_openai_model(kind: ModelKind) -> str:
+    """The model id `Settings` ships with for the `kind` slot."""
+    field = "openai_text_model" if kind == "text" else "openai_image_model"
+    return str(Settings.model_fields[field].default)
 
 
 @lru_cache(maxsize=1)

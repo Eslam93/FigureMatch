@@ -43,7 +43,7 @@ def _row(**overrides: Any) -> Any:
         "content_piece_id": uuid.uuid4(),
         "style": "photorealistic",
         "provider": ImageProvider.OPENAI,
-        "model_id": "gpt-image-1",
+        "model_id": "gpt-image-2.5-flare",
         "width": 1024,
         "height": 1024,
         "s3_key": "abc123.png",

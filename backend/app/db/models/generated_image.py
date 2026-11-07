@@ -72,7 +72,7 @@ class GeneratedImage(TimestampedMixin, Base):
     model_id: Mapped[str] = mapped_column(String(120), nullable=False)
     width: Mapped[int] = mapped_column(Integer, nullable=False, default=1024)
     height: Mapped[int] = mapped_column(Integer, nullable=False, default=1024)
-    # `gpt-image-1` does not expose a seed — column is nullable for that path.
+    # OpenAI's Images API does not expose a seed — column is nullable for that path.
     seed: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     s3_key: Mapped[str] = mapped_column(String(500), nullable=False)

@@ -7,8 +7,9 @@ payload. The image provider then consumes that prompt.
 
 Two providers; one schema:
 
-- `gpt-image-1` (OpenAI) takes the positive `prompt` only and folds the
-  `negative_prompt` text into it (see service-layer folding).
+- OpenAI's GPT Image models (default `gpt-image-2.5-flare`) take the
+  positive `prompt` only, so the service folds the `negative_prompt`
+  text into it.
 - Bedrock Nova Canvas takes a real negative prompt. Either way the
   payload shape stays the same — the builder is provider-agnostic.
 
@@ -39,9 +40,9 @@ failure mode of v1:
      boilerplate "text, watermark, logos, faces" was useful but
      identical every time; v2 asks the model to add 2-3 content-aware
      cliché exclusions (e.g. "stock-photo handshake" for hiring posts,
-     "anthropomorphic robot" for AI posts) — these matter on
-     `gpt-image-1` because the negative folds into the positive as an
-     "Avoid:" clause at generation time.
+     "anthropomorphic robot" for AI posts) — these matter on OpenAI's
+     GPT Image models because the negative folds into the positive as
+     an "Avoid:" clause at generation time.
 """
 
 from __future__ import annotations

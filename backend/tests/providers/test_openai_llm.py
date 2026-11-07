@@ -20,16 +20,21 @@ if TYPE_CHECKING:
     from pytest import MonkeyPatch
 
 
+_PINNED = "gpt-5.4-mini-2026-03-17"
+
+
 def _build_fake_response(
     *,
     content: str,
-    model: str = "gpt-5.4-mini-2026-03-17",
+    model: str = _PINNED,
     prompt_tokens: int = 100,
     completion_tokens: int = 50,
+    cached_tokens: int | None = None,
     finish_reason: str = "stop",
 ) -> MagicMock:
     """Construct an object that quacks like the openai SDK's
-    ChatCompletion response — enough fields for our provider to read."""
+    ChatCompletion response — enough fields for our provider to read.
+    `cached_tokens=None` models a response without `prompt_tokens_details`."""
     response = MagicMock()
     response.model = model
     response.choices = [MagicMock()]
@@ -38,6 +43,9 @@ def _build_fake_response(
     response.usage = MagicMock()
     response.usage.prompt_tokens = prompt_tokens
     response.usage.completion_tokens = completion_tokens
+    response.usage.prompt_tokens_details = (
+        None if cached_tokens is None else MagicMock(cached_tokens=cached_tokens)
+    )
     return response
 
 
@@ -48,18 +56,83 @@ def _build_fake_client(create_mock: AsyncMock) -> MagicMock:
     return client
 
 
+def _cost(
+    model: str,
+    *,
+    input_tokens: int,
+    output_tokens: int,
+    cached_input_tokens: int = 0,
+    configured: str = _PINNED,
+) -> float:
+    return _compute_cost_usd(
+        model,
+        configured,
+        input_tokens=input_tokens,
+        cached_input_tokens=cached_input_tokens,
+        output_tokens=output_tokens,
+    )
+
+
 # ── cost calculation ───────────────────────────────────────────────────
 
 
-def test_compute_cost_usd_for_known_model() -> None:
-    # 1000 input + 500 output at $0.15/$0.60 per 1M.
-    cost = _compute_cost_usd("gpt-5.4-mini-2026-03-17", 1000, 500)
-    assert cost == pytest.approx((1000 * 0.15 + 500 * 0.60) / 1_000_000)
+def test_one_thousand_input_and_output_tokens_cost_0_00525() -> None:
+    """The price-table regression: gpt-5.4-mini is $0.75 in / $4.50 out
+    per 1M tokens, so 1,000 + 1,000 tokens cost $0.00075 + $0.0045."""
+    assert _cost(_PINNED, input_tokens=1000, output_tokens=1000) == pytest.approx(0.00525)
+    assert _cost("gpt-5.4-mini", input_tokens=1000, output_tokens=1000) == pytest.approx(0.00525)
 
 
-def test_compute_cost_usd_for_unknown_model_returns_zero_in_local() -> None:
+def test_cached_prompt_tokens_bill_at_the_cached_rate() -> None:
+    # 600 uncached x $0.75 + 400 cached x $0.075 + 200 output x $4.50, per 1M.
+    cost = _cost(_PINNED, input_tokens=1000, cached_input_tokens=400, output_tokens=200)
+    assert cost == pytest.approx((600 * 0.75 + 400 * 0.075 + 200 * 4.50) / 1_000_000)
+
+
+def test_unpriced_response_snapshot_falls_back_to_configured_model(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """The API may report a snapshot the catalog doesn't list yet. The
+    call is already paid for, so price it at the configured model's
+    rates and log both ids — never raise, even outside `local`."""
+    from app.core.config import Environment, get_settings
+
+    monkeypatch.setattr(get_settings(), "environment", Environment.PROD)
+    fake_log = MagicMock()
+    monkeypatch.setattr("app.providers.llm.openai_provider.log", fake_log)
+
+    cost = _cost("gpt-5.4-mini-2099-01-01", input_tokens=1000, output_tokens=1000)
+
+    assert cost == pytest.approx(0.00525)
+    fake_log.warning.assert_called_once_with(
+        "openai_response_model_unpriced",
+        response_model="gpt-5.4-mini-2099-01-01",
+        configured_model=_PINNED,
+    )
+
+
+def test_priced_response_snapshot_wins_over_configured_model() -> None:
+    """`response.model` is looked up first: a priced snapshot is billed at
+    its own rates even when the configured id is something else."""
+    cost = _cost(_PINNED, input_tokens=1000, output_tokens=1000, configured="not-in-catalog")
+    assert cost == pytest.approx(0.00525)
+
+
+def test_compute_cost_usd_for_unknown_model_returns_zero_in_local(
+    monkeypatch: MonkeyPatch,
+) -> None:
     # Default test env is `local`, where unknown models log + return 0.0.
-    assert _compute_cost_usd("future-model-not-priced", 1000, 500) == 0.0
+    fake_log = MagicMock()
+    monkeypatch.setattr("app.providers.llm.openai_provider.log", fake_log)
+
+    cost = _cost("future-model-not-priced", input_tokens=1000, output_tokens=500, configured="x")
+
+    assert cost == 0.0
+    fake_log.warning.assert_called_once_with(
+        "openai_unknown_model_pricing_local_only",
+        model="future-model-not-priced",
+        configured_model="x",
+    )
 
 
 def test_compute_cost_usd_for_unknown_model_raises_in_non_local(
@@ -74,7 +147,91 @@ def test_compute_cost_usd_for_unknown_model_raises_in_non_local(
     from app.providers.errors import ProviderConfigError
 
     with pytest.raises(ProviderConfigError, match="No pricing entry"):
-        _compute_cost_usd("future-model-not-priced", 1000, 500)
+        _cost("future-model-not-priced", input_tokens=1000, output_tokens=500, configured="x")
+
+
+def test_image_model_id_is_not_priced_as_text() -> None:
+    """The catalog is kind-aware: an image model in the text slot has no
+    text price, so it takes the unknown-model path (zero in `local`)."""
+    cost = _cost("gpt-image-2.5-flare", input_tokens=1000, output_tokens=500, configured="x")
+    assert cost == 0.0
+
+
+@pytest.mark.parametrize(
+    ("cached_tokens", "expected"),
+    [
+        (None, 0),  # no prompt_tokens_details block at all
+        (0, 0),
+        (40, 40),
+        (500, 100),  # clamped to prompt_tokens
+        (-5, 0),  # clamped to zero
+    ],
+)
+async def test_cached_tokens_are_read_none_safely_and_clamped(
+    cached_tokens: int | None, expected: int
+) -> None:
+    response = _build_fake_response(content="ok", prompt_tokens=100, cached_tokens=cached_tokens)
+    provider = OpenAIChatProvider(client=_build_fake_client(AsyncMock(return_value=response)))
+
+    result = await provider.generate(system_prompt="s", user_prompt="u", content_type="blog_post")
+
+    uncached = 100 - expected
+    assert result.input_tokens == 100
+    assert result.cost_usd == pytest.approx(
+        (uncached * 0.75 + expected * 0.075 + 50 * 4.50) / 1_000_000
+    )
+
+
+async def test_cached_tokens_field_set_to_none_counts_as_zero() -> None:
+    response = _build_fake_response(content="ok", prompt_tokens=100, cached_tokens=0)
+    response.usage.prompt_tokens_details.cached_tokens = None
+    provider = OpenAIChatProvider(client=_build_fake_client(AsyncMock(return_value=response)))
+
+    result = await provider.generate(system_prompt="s", user_prompt="u", content_type="blog_post")
+
+    assert result.cost_usd == pytest.approx((100 * 0.75 + 50 * 4.50) / 1_000_000)
+
+
+async def test_chat_completion_log_carries_cached_input_tokens(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    fake_log = MagicMock()
+    monkeypatch.setattr("app.providers.llm.openai_provider.log", fake_log)
+    response = _build_fake_response(content="ok", prompt_tokens=100, cached_tokens=30)
+    provider = OpenAIChatProvider(client=_build_fake_client(AsyncMock(return_value=response)))
+
+    await provider.generate(system_prompt="s", user_prompt="u", content_type="blog_post")
+
+    event, fields = fake_log.info.call_args.args[0], fake_log.info.call_args.kwargs
+    assert event == "openai_chat_completion"
+    assert fields["input_tokens"] == 100
+    assert fields["cached_input_tokens"] == 30
+    assert fields["output_tokens"] == 50
+
+
+async def test_response_snapshot_fallback_uses_the_providers_configured_model(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """End to end: the provider passes its own configured model as the
+    fallback when the API reports an unpriced snapshot."""
+    fake_log = MagicMock()
+    monkeypatch.setattr("app.providers.llm.openai_provider.log", fake_log)
+    response = _build_fake_response(
+        content="ok", model="gpt-5.4-mini-2099-01-01", prompt_tokens=1000, completion_tokens=1000
+    )
+    provider = OpenAIChatProvider(
+        client=_build_fake_client(AsyncMock(return_value=response)), model="gpt-5.4-mini"
+    )
+
+    result = await provider.generate(system_prompt="s", user_prompt="u", content_type="blog_post")
+
+    assert result.model == "gpt-5.4-mini-2099-01-01"
+    assert result.cost_usd == pytest.approx(0.00525)
+    fake_log.warning.assert_called_once_with(
+        "openai_response_model_unpriced",
+        response_model="gpt-5.4-mini-2099-01-01",
+        configured_model="gpt-5.4-mini",
+    )
 
 
 # ── happy path ─────────────────────────────────────────────────────────
@@ -85,7 +242,7 @@ async def test_generate_returns_parsed_result(monkeypatch: MonkeyPatch) -> None:
     body, model, tokens, cost, latency, and finish_reason populated."""
     create_mock = AsyncMock(return_value=_build_fake_response(content='{"x": 1}'))
     client = _build_fake_client(create_mock)
-    provider = OpenAIChatProvider(client=client, model="gpt-5.4-mini-2026-03-17")
+    provider = OpenAIChatProvider(client=client, model=_PINNED)
 
     result = await provider.generate(
         system_prompt="sys",
@@ -93,10 +250,11 @@ async def test_generate_returns_parsed_result(monkeypatch: MonkeyPatch) -> None:
         content_type="blog_post",
     )
     assert result.raw_text == '{"x": 1}'
-    assert result.model == "gpt-5.4-mini-2026-03-17"
+    assert result.model == _PINNED
     assert result.input_tokens == 100
     assert result.output_tokens == 50
-    assert result.cost_usd > 0
+    # 100 input x $0.75 + 50 output x $4.50, per 1M tokens.
+    assert result.cost_usd == pytest.approx((100 * 0.75 + 50 * 4.50) / 1_000_000)
     assert result.finish_reason == "stop"
 
 
