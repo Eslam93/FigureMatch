@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * CDK app entry for MagnaCMS infrastructure.
+ * CDK app entry for FigureMatch infrastructure.
  *
  * Reads `--context env=dev` (or staging/prod once wired) and constructs
  * the five stacks (Network → Data → Compute → Edge → Observability) in
- * dependency order. Each stack is named `magnacms-${env}-${stack}` so
+ * dependency order. Each stack is named `figurematch-${env}-${stack}` so
  * multiple environments can coexist in one AWS account if needed.
  *
  * # Required context for non-local deploys
@@ -33,7 +33,7 @@
  * The escape hatch `-c allow_synthetic_endpoints=true` lets a bootstrap
  * deploy run before the real Amplify URL is known. In that mode the
  * resolver fills missing values with clearly-synthetic placeholders
- * (`https://magnacms-bootstrap.invalid`), the app prints a loud CDK
+ * (`https://figurematch-bootstrap.invalid`), the app prints a loud CDK
  * warning, and every resource is tagged `synthetic-endpoints=true` so
  * the placeholder state is visible from the CloudFormation console.
  * The placeholders pass the backend's `Settings` validator but produce
@@ -65,7 +65,7 @@ const awsEnv: cdk.Environment = {
 };
 
 // Tag every resource with the env so it's easy to grep AWS console.
-cdk.Tags.of(app).add("project", "magnacms");
+cdk.Tags.of(app).add("project", "figurematch");
 cdk.Tags.of(app).add("environment", cfg.envName);
 cdk.Tags.of(app).add("managed-by", "cdk");
 
@@ -104,7 +104,7 @@ if (syntheticEndpointsUsed) {
   // app on the first request, so the operator must see this signal.
   // eslint-disable-next-line no-console
   console.warn(
-    "\n⚠️  [MagnaCMS] synthetic endpoints in effect.\n" +
+    "\n⚠️  [FigureMatch] synthetic endpoints in effect.\n" +
       "    CORS_ORIGINS and/or IMAGES_CDN_BASE_URL are populated from\n" +
       "    placeholder values (either resolver-supplied or a `.invalid`\n" +
       "    value passed through the escape hatch). The deployed backend\n" +
@@ -114,12 +114,12 @@ if (syntheticEndpointsUsed) {
   cdk.Tags.of(app).add("synthetic-endpoints", "true");
 }
 
-const network = new NetworkStack(app, `magnacms-${envName}-network`, {
+const network = new NetworkStack(app, `figurematch-${envName}-network`, {
   env: awsEnv,
   cfg,
 });
 
-const data = new DataStack(app, `magnacms-${envName}-data`, {
+const data = new DataStack(app, `figurematch-${envName}-data`, {
   env: awsEnv,
   cfg,
   vpc: network.vpc,
@@ -128,7 +128,7 @@ const data = new DataStack(app, `magnacms-${envName}-data`, {
   // ElastiCache cluster was removed pending Phase 11 + a VPC connector.
 });
 
-const compute = new ComputeStack(app, `magnacms-${envName}-compute`, {
+const compute = new ComputeStack(app, `figurematch-${envName}-compute`, {
   env: awsEnv,
   cfg,
   vpc: network.vpc,
@@ -140,14 +140,14 @@ const compute = new ComputeStack(app, `magnacms-${envName}-compute`, {
   imagesCdnBaseUrl,
 });
 
-const edge = new EdgeStack(app, `magnacms-${envName}-edge`, {
+const edge = new EdgeStack(app, `figurematch-${envName}-edge`, {
   env: awsEnv,
   cfg,
 });
 
 const observability = new ObservabilityStack(
   app,
-  `magnacms-${envName}-observability`,
+  `figurematch-${envName}-observability`,
   {
     env: awsEnv,
     cfg,

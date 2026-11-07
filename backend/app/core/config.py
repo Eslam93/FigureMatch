@@ -238,7 +238,7 @@ class Settings(BaseSettings):
     )
 
     # --- App metadata ---
-    app_name: str = "MagnaCMS"
+    app_name: str = "FigureMatch"
     app_version: str = "0.1.0"
     environment: Environment = Environment.LOCAL
     log_level: str = "INFO"

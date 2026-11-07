@@ -16,7 +16,7 @@ def _sample(**overrides: object) -> EmailResult:
             "is doing more work than it needs to."
         ),
         "cta_text": "Show me the pattern",
-        "sign_off": "— The MagnaCMS team",
+        "sign_off": "— The FigureMatch team",
     }
     data.update(overrides)
     return EmailResult.model_validate(data)
@@ -41,5 +41,5 @@ def test_body_cta_and_sign_off_appear_in_order() -> None:
     md = render_email(_sample())
     body_idx = md.index("If you're building")
     cta_idx = md.index("Show me the pattern")
-    sign_idx = md.index("The MagnaCMS team")
+    sign_idx = md.index("The FigureMatch team")
     assert body_idx < cta_idx < sign_idx

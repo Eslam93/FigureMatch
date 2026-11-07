@@ -26,7 +26,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
       <body className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-6 text-center text-foreground antialiased">
         <h1 className="text-2xl font-bold tracking-tight">Something went wrong</h1>
         <p className="max-w-md text-muted-foreground">
-          MagnaCMS hit an unexpected error. Try again, or reload the page.
+          FigureMatch hit an unexpected error. Try again, or reload the page.
         </p>
         <Button variant="brand" onClick={() => reset()}>
           Try again

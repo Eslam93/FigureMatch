@@ -1,16 +1,16 @@
-# MagnaCMS Infrastructure (AWS CDK, TypeScript)
+# FigureMatch Infrastructure (AWS CDK, TypeScript)
 
-This directory holds the AWS CDK app that defines every cloud resource MagnaCMS uses: the VPC, RDS Postgres, ElastiCache Redis (provisioned but not yet used — see [DEVLOG.md](../DEVLOG.md)), App Runner backend service, ECR repository, Amplify-hosted frontend, and CloudWatch alarm scaffolding (CloudFront-for-images is deferred to Phase 5; see [P2.5 PR](https://github.com/Eslam93/MagnaCMS/pull/124) for the circular-dependency reasoning).
+This directory holds the AWS CDK app that defines every cloud resource FigureMatch uses: the VPC, RDS Postgres, ElastiCache Redis (provisioned but not yet used — see [DEVLOG.md](../DEVLOG.md)), App Runner backend service, ECR repository, Amplify-hosted frontend, and CloudWatch alarm scaffolding (CloudFront-for-images is deferred to Phase 5; see [P2.5 PR](https://github.com/Eslam93/FigureMatch/pull/124) for the circular-dependency reasoning).
 
 ## Status
 
 | Stack | PR | Status |
 |---|---|---|
-| `magnacms-dev-network` | P2.2 | ✅ shipped |
-| `magnacms-dev-data` | P2.3 | ✅ shipped |
-| `magnacms-dev-compute` | P2.4 | ✅ shipped |
-| `magnacms-dev-edge` | P2.5 | ✅ shipped (Amplify only — CloudFront deferred to Phase 5) |
-| `magnacms-dev-observability` | P2.6 | ✅ shipped (placeholder; CloudWatch alarm lands in P11.6) |
+| `figurematch-dev-network` | P2.2 | ✅ shipped |
+| `figurematch-dev-data` | P2.3 | ✅ shipped |
+| `figurematch-dev-compute` | P2.4 | ✅ shipped |
+| `figurematch-dev-edge` | P2.5 | ✅ shipped (Amplify only — CloudFront deferred to Phase 5) |
+| `figurematch-dev-observability` | P2.6 | ✅ shipped (placeholder; CloudWatch alarm lands in P11.6) |
 
 All five stacks `cdk synth --all -c env=dev` cleanly on every PR via `.github/workflows/infra-ci.yml`. Actual `cdk deploy` is a manual step — see [`DEPLOY.md`](./DEPLOY.md).
 
@@ -19,7 +19,7 @@ All five stacks `cdk synth --all -c env=dev` cleanly on every PR via `.github/wo
 ```
 infra/
 ├── bin/
-│   └── magnacms.ts              # CDK app entry; reads --context env=dev
+│   └── figurematch.ts              # CDK app entry; reads --context env=dev
 ├── lib/
 │   ├── config.ts                # per-env config loader
 │   ├── network-stack.ts         # → P2.2
@@ -77,7 +77,7 @@ npx cdk deploy --all -c env=dev
 npx cdk deploy --all -c env=prod
 ```
 
-Stack names are namespaced by env: `magnacms-dev-network`, `magnacms-prod-network`, etc. — multiple envs can coexist in one AWS account.
+Stack names are namespaced by env: `figurematch-dev-network`, `figurematch-prod-network`, etc. — multiple envs can coexist in one AWS account.
 
 ## CI
 

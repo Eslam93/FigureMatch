@@ -28,7 +28,7 @@ describe("EdgeStack (dev)", () => {
     template.resourceCountIs("AWS::Amplify::App", 1);
     template.resourceCountIs("AWS::Amplify::Branch", 1);
     template.hasResourceProperties("AWS::Amplify::App", {
-      Name: "magnacms-dev",
+      Name: "figurematch-dev",
     });
     template.hasResourceProperties("AWS::Amplify::Branch", {
       BranchName: "main",

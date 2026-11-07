@@ -128,7 +128,7 @@ _CANNED_RESPONSES: Final[dict[str, dict[str, Any]]] = {
             "Worth trying if you haven't already."
         ),
         "cta_text": "Show me the pattern",
-        "sign_off": "— The MagnaCMS team",
+        "sign_off": "— The FigureMatch team",
     },
     "image_prompt": {
         "prompt": (

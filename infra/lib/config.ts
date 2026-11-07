@@ -67,7 +67,7 @@ const DEV_CONFIG: EnvConfig = {
   apprunnerCpu: "1 vCPU",
   apprunnerMemory: "2 GB",
   logRetentionDays: 14,
-  amplifyAppName: "magnacms-dev",
+  amplifyAppName: "figurematch-dev",
   imagesBucketBaseName: "ai-content-images",
 };
 

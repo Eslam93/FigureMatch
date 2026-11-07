@@ -91,14 +91,14 @@ describe("ComputeStack (dev)", () => {
   it("provisions one ECR repository", () => {
     template.resourceCountIs("AWS::ECR::Repository", 1);
     template.hasResourceProperties("AWS::ECR::Repository", {
-      RepositoryName: "magnacms-dev-backend",
+      RepositoryName: "figurematch-dev-backend",
     });
   });
 
   it("provisions one App Runner service with health check on /api/v1/health", () => {
     template.resourceCountIs("AWS::AppRunner::Service", 1);
     template.hasResourceProperties("AWS::AppRunner::Service", {
-      ServiceName: "magnacms-dev-backend",
+      ServiceName: "figurematch-dev-backend",
       HealthCheckConfiguration: {
         Protocol: "HTTP",
         Path: "/api/v1/health",
@@ -120,7 +120,7 @@ describe("ComputeStack (dev)", () => {
     // config — way more than the DB pool budget. Pin the contract.
     template.resourceCountIs("AWS::AppRunner::AutoScalingConfiguration", 1);
     template.hasResourceProperties("AWS::AppRunner::AutoScalingConfiguration", {
-      AutoScalingConfigurationName: "magnacms-dev-apprunner-asg",
+      AutoScalingConfigurationName: "figurematch-dev-apprunner-asg",
       MinSize: cfg.apprunnerMinInstances,
       MaxSize: cfg.apprunnerMaxInstances,
       MaxConcurrency: 80,
@@ -168,7 +168,7 @@ describe("ComputeStack (dev)", () => {
   it("migration task receives RDS_SECRET_ARN as a plain env var (not a secret ref)", () => {
     const taskDefs = template.findResources("AWS::ECS::TaskDefinition");
     const taskDef = Object.values(taskDefs).find(
-      (t) => t.Properties.Family === "magnacms-dev-migrate",
+      (t) => t.Properties.Family === "figurematch-dev-migrate",
     );
     expect(taskDef).toBeDefined();
     const container = taskDef!.Properties.ContainerDefinitions[0];
@@ -186,7 +186,7 @@ describe("ComputeStack (dev)", () => {
     template.resourceCountIs("AWS::ECS::Cluster", 1);
     template.resourceCountIs("AWS::ECS::TaskDefinition", 1);
     template.hasResourceProperties("AWS::ECS::TaskDefinition", {
-      Family: "magnacms-dev-migrate",
+      Family: "figurematch-dev-migrate",
       Cpu: "256",
       Memory: "512",
     });

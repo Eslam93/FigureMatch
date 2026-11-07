@@ -62,12 +62,12 @@ def assemble_postgres_dsn(creds: dict[str, str | int]) -> str:
     AWS RDS auto-creates secrets in the shape::
 
         {
-          "username": "magnacms_app",
+          "username": "figurematch_app",
           "password": "...",
           "engine": "postgres",
           "host": "...rds.amazonaws.com",
           "port": 5432,
-          "dbname": "magnacms",
+          "dbname": "figurematch",
           "dbInstanceIdentifier": "..."
         }
 

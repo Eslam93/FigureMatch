@@ -48,24 +48,24 @@ jobs:
         run: |
           ENV=${{ github.event.inputs.env }}
           ECR_URI=$(aws cloudformation describe-stacks \
-            --stack-name magnacms-$ENV-compute \
-            --query "Stacks[0].Outputs[?ExportName=='magnacms-$ENV-compute-ecr-uri'].OutputValue" \
+            --stack-name figurematch-$ENV-compute \
+            --query "Stacks[0].Outputs[?ExportName=='figurematch-$ENV-compute-ecr-uri'].OutputValue" \
             --output text)
           APPRUNNER_ARN=$(aws cloudformation describe-stacks \
-            --stack-name magnacms-$ENV-compute \
-            --query "Stacks[0].Outputs[?ExportName=='magnacms-$ENV-compute-apprunner-service-arn'].OutputValue" \
+            --stack-name figurematch-$ENV-compute \
+            --query "Stacks[0].Outputs[?ExportName=='figurematch-$ENV-compute-apprunner-service-arn'].OutputValue" \
             --output text)
           APPRUNNER_URL=$(aws cloudformation describe-stacks \
-            --stack-name magnacms-$ENV-compute \
-            --query "Stacks[0].Outputs[?ExportName=='magnacms-$ENV-compute-apprunner-service-url'].OutputValue" \
+            --stack-name figurematch-$ENV-compute \
+            --query "Stacks[0].Outputs[?ExportName=='figurematch-$ENV-compute-apprunner-service-url'].OutputValue" \
             --output text)
           MIGRATION_CLUSTER=$(aws cloudformation describe-stacks \
-            --stack-name magnacms-$ENV-compute \
-            --query "Stacks[0].Outputs[?ExportName=='magnacms-$ENV-compute-migration-cluster-arn'].OutputValue" \
+            --stack-name figurematch-$ENV-compute \
+            --query "Stacks[0].Outputs[?ExportName=='figurematch-$ENV-compute-migration-cluster-arn'].OutputValue" \
             --output text)
           MIGRATION_TASK_DEF=$(aws cloudformation describe-stacks \
-            --stack-name magnacms-$ENV-compute \
-            --query "Stacks[0].Outputs[?ExportName=='magnacms-$ENV-compute-migration-task-arn'].OutputValue" \
+            --stack-name figurematch-$ENV-compute \
+            --query "Stacks[0].Outputs[?ExportName=='figurematch-$ENV-compute-migration-task-arn'].OutputValue" \
             --output text)
           {
             echo "ecr_uri=$ECR_URI"
@@ -124,7 +124,7 @@ jobs:
         # explicit `if:` here makes the dependency visible.
         if: ${{ github.event.inputs.run_migrations == 'true' && success() }}
         run: |
-          # ECS run-task against the magnacms-${env}-migrate task def.
+          # ECS run-task against the figurematch-${env}-migrate task def.
           # Uses the public subnets from NetworkStack (read via tag).
           SUBNET_IDS=$(aws ec2 describe-subnets \
             --filters "Name=tag:environment,Values=${{ github.event.inputs.env }}" \

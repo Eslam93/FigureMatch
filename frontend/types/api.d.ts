@@ -1,5 +1,5 @@
 /**
- * Hand-stubbed OpenAPI schema for the MagnaCMS backend.
+ * Hand-stubbed OpenAPI schema for the FigureMatch backend.
  *
  * Regenerate from the live spec with `pnpm gen:api` once the API is
  * deployed (P2.7+). For now this stub matches the endpoints that

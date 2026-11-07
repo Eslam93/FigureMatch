@@ -1,4 +1,4 @@
-# MagnaCMS UI — v2 design system
+# FigureMatch UI — v2 design system
 
 Drop-in successor to `components/ui/*` and the inline-styled blocks scattered across `components/features/*`. v2 is **additive** — nothing in v1 changes, and the two systems coexist while features migrate.
 
@@ -326,6 +326,6 @@ A few decisions worth flagging:
 
 ## 9. Open questions
 
-- The brand hue in `tokens.css` is a placeholder blue (`221 83% 53%`). Swap it for the real MagnaCMS brand once design has picked one.
+- The brand hue in `tokens.css` is a placeholder blue (`221 83% 53%`). Swap it for the real FigureMatch brand once design has picked one.
 - `Surface` tokens are defined but only used by `DialogFooter` so far — expand if/when we adopt a layered layout pattern (e.g. a settings page with grouped surfaces).
 - Consider a `Toast` primitive that wraps `sonner` so feature code doesn't import `sonner` directly. Out of scope for this slice.

@@ -13,7 +13,7 @@ export function Sidebar() {
     <aside className="hidden w-60 shrink-0 border-r bg-card md:flex md:flex-col">
       <div className="border-b px-6 py-4">
         <Link href="/dashboard" className="text-lg font-bold">
-          MagnaCMS
+          FigureMatch
         </Link>
       </div>
       <nav className="flex-1 space-y-1 p-4">

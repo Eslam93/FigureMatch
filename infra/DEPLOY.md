@@ -1,4 +1,4 @@
-# Deploying MagnaCMS to AWS — manual runbook
+# Deploying FigureMatch to AWS — manual runbook
 
 This document walks through the first `cdk deploy` and the post-deploy bootstrap steps. After that's done once, `deploy.yml` handles every subsequent push to `main`.
 
@@ -26,31 +26,31 @@ This provisions the CDK toolkit stack (S3 bucket for assets, IAM roles) — requ
 
 Data must exist before the OpenAI secret can be populated, and the OpenAI secret must hold a real key before App Runner boots — the backend's config validator rejects the placeholder value in non-`local` environments. So Compute is split out into step 4.
 
-> **Required CDK context for any non-local deploy:** `cors_origins` and `images_cdn_base_url`. The backend's config validator rejects localhost values in non-local envs and the LocalImageStorage adapter returns broken URLs when the base is empty — `bin/magnacms.ts` will fail synth if either is absent unless `-c allow_synthetic_endpoints=true` is set (intended for the first bootstrap before the Amplify URL is known). For the first-bootstrap path you can pass an Amplify-shaped placeholder; once the real URL is known, redeploy with the real values:
+> **Required CDK context for any non-local deploy:** `cors_origins` and `images_cdn_base_url`. The backend's config validator rejects localhost values in non-local envs and the LocalImageStorage adapter returns broken URLs when the base is empty — `bin/figurematch.ts` will fail synth if either is absent unless `-c allow_synthetic_endpoints=true` is set (intended for the first bootstrap before the Amplify URL is known). For the first-bootstrap path you can pass an Amplify-shaped placeholder; once the real URL is known, redeploy with the real values:
 >
 > ```bash
 > # First bootstrap (no Amplify URL yet):
 > npx cdk deploy --all -c env=dev -c allow_synthetic_endpoints=true
 >
 > # After Amplify URL is known, redeploy Compute with the real values:
-> npx cdk deploy magnacms-dev-compute -c env=dev \
+> npx cdk deploy figurematch-dev-compute -c env=dev \
 >   -c cors_origins=https://<your-app>.amplifyapp.com \
 >   -c images_cdn_base_url=https://<your-apprunner-id>.us-east-1.awsapprunner.com/local-images
 > ```
 
 ```bash
-npx cdk deploy magnacms-dev-network magnacms-dev-data -c env=dev \
+npx cdk deploy figurematch-dev-network figurematch-dev-data -c env=dev \
   -c cors_origins=https://<your-app>.amplifyapp.com \
   -c images_cdn_base_url=https://<your-apprunner-id>.us-east-1.awsapprunner.com/local-images
 ```
 
 ### 3. Populate the OpenAI API key
 
-DataStack creates `magnacms-dev-openai-api-key` with an explicit placeholder string (`sk-proj-REPLACE_ME-...`). Populate it before Compute deploys so App Runner can pass the secret-strength validator on first boot:
+DataStack creates `figurematch-dev-openai-api-key` with an explicit placeholder string (`sk-proj-REPLACE_ME-...`). Populate it before Compute deploys so App Runner can pass the secret-strength validator on first boot:
 
 ```bash
 aws secretsmanager put-secret-value \
-  --secret-id magnacms-dev-openai-api-key \
+  --secret-id figurematch-dev-openai-api-key \
   --secret-string '<your-sk-proj-key>'
 ```
 
@@ -63,15 +63,15 @@ aws secretsmanager put-secret-value \
 # Runner's expected first-boot failure. Without --no-rollback,
 # CloudFormation rolls the whole stack back, deleting the ECR repo
 # before we get a chance to push to it.
-npx cdk deploy magnacms-dev-compute --no-rollback -c env=dev
+npx cdk deploy figurematch-dev-compute --no-rollback -c env=dev
 # Compute will fail at App Runner creation — that's expected. The ECR
 # repo survives in CREATE_COMPLETE state.
 
 # Build + push the real backend image. ECR repo name is deterministic
-# (`magnacms-dev-backend`) so look it up directly instead of digging
+# (`figurematch-dev-backend`) so look it up directly instead of digging
 # CloudFormation outputs out of a failed-state stack.
 ECR_URI=$(aws ecr describe-repositories \
-  --repository-names magnacms-dev-backend \
+  --repository-names figurematch-dev-backend \
   --query 'repositories[0].repositoryUri' --output text)
 aws ecr get-login-password --region us-east-1 \
   | docker login --username AWS --password-stdin "$ECR_URI"
@@ -80,21 +80,21 @@ docker push "$ECR_URI:latest"
 
 # Now retry the deploy — App Runner should succeed this time.
 # Drop --no-rollback now; subsequent deploys want normal rollback behavior.
-npx cdk deploy magnacms-dev-compute -c env=dev
+npx cdk deploy figurematch-dev-compute -c env=dev
 ```
 
 ### 5. Deploy remaining stacks
 
 ```bash
-npx cdk deploy magnacms-dev-edge magnacms-dev-observability -c env=dev
+npx cdk deploy figurematch-dev-edge figurematch-dev-observability -c env=dev
 ```
 
 If you ever need to rotate the OpenAI key after Compute is RUNNING, App Runner picks up the new value on next deploy. Force a redeploy with:
 
 ```bash
 APPRUNNER_ARN=$(aws cloudformation describe-stacks \
-  --stack-name magnacms-dev-compute \
-  --query "Stacks[0].Outputs[?ExportName=='magnacms-dev-compute-apprunner-service-arn'].OutputValue" \
+  --stack-name figurematch-dev-compute \
+  --query "Stacks[0].Outputs[?ExportName=='figurematch-dev-compute-apprunner-service-arn'].OutputValue" \
   --output text)
 aws apprunner start-deployment --service-arn "$APPRUNNER_ARN"
 ```
@@ -103,12 +103,12 @@ aws apprunner start-deployment --service-arn "$APPRUNNER_ARN"
 
 ```bash
 MIGRATION_CLUSTER=$(aws cloudformation describe-stacks \
-  --stack-name magnacms-dev-compute \
-  --query "Stacks[0].Outputs[?ExportName=='magnacms-dev-compute-migration-cluster-arn'].OutputValue" \
+  --stack-name figurematch-dev-compute \
+  --query "Stacks[0].Outputs[?ExportName=='figurematch-dev-compute-migration-cluster-arn'].OutputValue" \
   --output text)
 MIGRATION_TASK_DEF=$(aws cloudformation describe-stacks \
-  --stack-name magnacms-dev-compute \
-  --query "Stacks[0].Outputs[?ExportName=='magnacms-dev-compute-migration-task-arn'].OutputValue" \
+  --stack-name figurematch-dev-compute \
+  --query "Stacks[0].Outputs[?ExportName=='figurematch-dev-compute-migration-task-arn'].OutputValue" \
   --output text)
 SUBNETS=$(aws ec2 describe-subnets \
   --filters "Name=tag:environment,Values=dev" \
@@ -122,7 +122,7 @@ SUBNETS=$(aws ec2 describe-subnets \
 # deadline exceeded". Pass the dedicated egress SG provisioned for
 # this purpose.
 SG_FARGATE=$(aws ec2 describe-security-groups \
-  --filters "Name=group-name,Values=magnacms-dev-fargate-egress" \
+  --filters "Name=group-name,Values=figurematch-dev-fargate-egress" \
   --query 'SecurityGroups[0].GroupId' --output text)
 
 aws ecs run-task \
@@ -132,12 +132,12 @@ aws ecs run-task \
   --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SG_FARGATE],assignPublicIp=ENABLED}"
 ```
 
-Watch for the task to reach STOPPED with exit code 0 in the ECS console. Logs are in the `magnacms-dev-compute-MigrationTaskmigrateLogGroup*` CloudWatch group.
+Watch for the task to reach STOPPED with exit code 0 in the ECS console. Logs are in the `figurematch-dev-compute-MigrationTaskmigrateLogGroup*` CloudWatch group.
 
 ### 6a. (Optional) Seed demo data
 
 The same Fargate task definition runs `python -m app.scripts.seed`
-when the command is overridden, populating `demo@magnacms.dev /
+when the command is overridden, populating `demo@figurematch.dev /
 DemoPass123` plus a handful of content pieces (mock provider — no
 OpenAI cost). **Caveat:** the seed currently generates demo images
 to `/app/local_images` on the Fargate task's container filesystem,
@@ -160,8 +160,8 @@ aws ecs run-task \
 
 ```bash
 APPRUNNER_URL=$(aws cloudformation describe-stacks \
-  --stack-name magnacms-dev-compute \
-  --query "Stacks[0].Outputs[?ExportName=='magnacms-dev-compute-apprunner-service-url'].OutputValue" \
+  --stack-name figurematch-dev-compute \
+  --query "Stacks[0].Outputs[?ExportName=='figurematch-dev-compute-apprunner-service-url'].OutputValue" \
   --output text)
 curl -fsSL "https://$APPRUNNER_URL/api/v1/health"
 ```
@@ -178,7 +178,7 @@ your manual change. The only path is:
 
 ```bash
 cd infra
-npx cdk deploy magnacms-dev-compute --exclusively \
+npx cdk deploy figurematch-dev-compute --exclusively \
   -c env=dev \
   -c cors_origins=https://<your-app>.amplifyapp.com \
   -c images_cdn_base_url=https://<your-apprunner-id>.us-east-1.awsapprunner.com/local-images
@@ -195,7 +195,7 @@ origin. For the current demo, point it at the App Runner URL's
 `/local-images` static mount; swap it for the CloudFront distribution
 when that ships.
 
-**Amplify** → `magnacms-dev` → App settings → Environment variables
+**Amplify** → `figurematch-dev` → App settings → Environment variables
 (this part IS console-driven because EdgeStack doesn't manage them):
 
 1. Add `NEXT_PUBLIC_API_BASE_URL` = `https://<apprunner-url>/api/v1`
@@ -212,7 +212,7 @@ SERVICE_ID=$(aws apprunner describe-service \
   --query 'Service.ServiceId' --output text)
 for stream in service application; do
   aws logs put-retention-policy \
-    --log-group-name "/aws/apprunner/magnacms-dev-backend/$SERVICE_ID/$stream" \
+    --log-group-name "/aws/apprunner/figurematch-dev-backend/$SERVICE_ID/$stream" \
     --retention-in-days 14
 done
 ```
@@ -246,8 +246,8 @@ Expected: ten 401s (invalid credentials), then a 429 (rate-limited) on attempt 1
 
 CDK creates the Amplify app shell but can't auto-connect to a GitHub repo without an OAuth token. From the Amplify console:
 
-1. Amplify → `magnacms-dev` → App settings → Repository settings → Reconnect repository
-2. Authorize the GitHub App for `Eslam93/MagnaCMS`
+1. Amplify → `figurematch-dev` → App settings → Repository settings → Reconnect repository
+2. Authorize the GitHub App for `Eslam93/FigureMatch`
 3. Confirm the `main` branch is detected and auto-deploys are enabled
 
 First Amplify build runs against the current `main` HEAD.

@@ -1,7 +1,7 @@
 [project]
-name = "magnacms-backend"
+name = "figurematch-backend"
 version = "0.1.0"
-description = "MagnaCMS — FastAPI backend"
+description = "FigureMatch — FastAPI backend"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 license = { text = "MIT" }

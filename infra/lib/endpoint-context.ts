@@ -4,7 +4,7 @@
  * `images_cdn_base_url` (public URL prefix for generated image bytes).
  *
  * Lives in its own module so the validation logic can be unit-tested
- * without instantiating the CDK App. `bin/magnacms.ts` is a thin
+ * without instantiating the CDK App. `bin/figurematch.ts` is a thin
  * adapter that pulls strings out of `app.node.tryGetContext(...)` and
  * hands them here.
  *
@@ -47,11 +47,11 @@ export interface ResolvedEndpoints {
 }
 
 /** Placeholder origin used when the operator opts into synthetic mode. */
-export const SYNTHETIC_CORS_ORIGINS = "https://magnacms-bootstrap.invalid";
+export const SYNTHETIC_CORS_ORIGINS = "https://figurematch-bootstrap.invalid";
 
 /** Placeholder image base URL used when the operator opts into synthetic mode. */
 export const SYNTHETIC_IMAGES_CDN_BASE_URL =
-  "https://magnacms-bootstrap.invalid/local-images";
+  "https://figurematch-bootstrap.invalid/local-images";
 
 const LOOPBACK_HOSTS = new Set([
   "localhost",
@@ -223,7 +223,7 @@ export function resolveEndpointContext(
   // placeholder — whether the resolver filled it in itself OR the
   // operator passed their own `.invalid` value through the escape
   // hatch. Both cases produce a deploy that fails on the first real
-  // request, so the warning and CloudFormation tag in `bin/magnacms.ts`
+  // request, so the warning and CloudFormation tag in `bin/figurematch.ts`
   // should fire either way.
   const syntheticEndpointsUsed =
     corsOrigins === SYNTHETIC_CORS_ORIGINS ||

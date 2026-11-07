@@ -51,7 +51,7 @@ jobs:
         # once any *-stack.ts file exists in lib/.
         #
         # Context: `cors_origins` and `images_cdn_base_url` are
-        # required for non-local deploys (see bin/magnacms.ts). CI
+        # required for non-local deploys (see bin/figurematch.ts). CI
         # synths use placeholder values so the synth path exercises
         # the same code as a real deploy. A real deploy MUST pass
         # the production values (see infra/DEPLOY.md §2).

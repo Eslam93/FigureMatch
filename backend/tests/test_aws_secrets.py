@@ -29,11 +29,11 @@ class TestAssemblePostgresDsn:
         """
         dsn = assemble_postgres_dsn(
             {
-                "username": "magnacms_app",
+                "username": "figurematch_app",
                 "password": "p@ss",
                 "host": "db.example.rds.amazonaws.com",
                 "port": 5432,
-                "dbname": "magnacms",
+                "dbname": "figurematch",
             }
         )
         assert dsn.endswith("?ssl=require")

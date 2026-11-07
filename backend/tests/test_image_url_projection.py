@@ -74,7 +74,7 @@ def test_projection_rebuilds_url_when_storage_base_changes() -> None:
     row = _row()
 
     class _OtherStorage(_FakeStorage):
-        base = "https://s3.us-east-1.amazonaws.com/magnacms-prod-images"
+        base = "https://s3.us-east-1.amazonaws.com/figurematch-prod-images"
 
     first = _project_image(row, _FakeStorage())
     second = _project_image(row, _OtherStorage())

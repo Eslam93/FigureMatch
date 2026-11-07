@@ -4,7 +4,7 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
-  title: "MagnaCMS",
+  title: "FigureMatch",
   description: "AI Content Marketing Suite",
 };
 

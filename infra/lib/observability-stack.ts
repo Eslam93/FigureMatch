@@ -39,7 +39,7 @@ export class ObservabilityStack extends Stack {
     //     metric: new cloudwatch.Metric({
     //       namespace: "AWS/AppRunner",
     //       metricName: "5xxStatusResponses",
-    //       dimensionsMap: { ServiceName: `magnacms-${cfg.envName}-backend` },
+    //       dimensionsMap: { ServiceName: `figurematch-${cfg.envName}-backend` },
     //       statistic: "Sum",
     //       period: Duration.minutes(5),
     //     }),

@@ -1,6 +1,6 @@
 # Development log
 
-A running journal of decisions, trade-offs, and progress on MagnaCMS. Newest entries first. Each entry is written when something interesting happens — not on a schedule — so the cadence reflects the actual pace of work.
+A running journal of decisions, trade-offs, and progress on FigureMatch. Newest entries first. Each entry is written when something interesting happens — not on a schedule — so the cadence reflects the actual pace of work.
 
 ---
 
@@ -32,7 +32,7 @@ EdgeStack creates the Amplify app and the `main` branch resource, but without a 
 
 ### Fargate task default-SG has no egress rules
 
-The migration task failed at startup with `ResourceInitializationError: ... canceled, context deadline exceeded` trying to fetch the RDS secret. The VPC's default SG has `IpPermissionsEgress: []` (CDK locks down the VPC default SG out of paranoia), so the Fargate task — which uses the default SG when `aws ecs run-task` doesn't pass one explicitly — has no outbound. Fixed by passing the dedicated `magnacms-dev-fargate-egress` SG that already existed for this purpose. `DEPLOY.md` §6 now includes the SG lookup in the runbook so this doesn't bite the next operator.
+The migration task failed at startup with `ResourceInitializationError: ... canceled, context deadline exceeded` trying to fetch the RDS secret. The VPC's default SG has `IpPermissionsEgress: []` (CDK locks down the VPC default SG out of paranoia), so the Fargate task — which uses the default SG when `aws ecs run-task` doesn't pass one explicitly — has no outbound. Fixed by passing the dedicated `figurematch-dev-fargate-egress` SG that already existed for this purpose. `DEPLOY.md` §6 now includes the SG lookup in the runbook so this doesn't bite the next operator.
 
 ### `/app/local_images` permission error on first image-gen
 
@@ -84,7 +84,7 @@ Round 2 review surfaced one regression PR #143 introduced (the CDK localhost-COR
 
 ### CDK context now required, no synthetic defaults
 
-The original direction was "ship synthetic placeholders like `https://magnacms-dev.invalid` so the synth never fails." User pushback was correct: that trades a startup/deploy failure for a silent user-visible runtime failure. Now `bin/magnacms.ts` requires `-c cors_origins=...` and `-c images_cdn_base_url=...` for non-local synth; missing values throw with a useful error message. The escape hatch is `-c allow_synthetic_endpoints=true`, which substitutes `https://magnacms-bootstrap.invalid` placeholders for first-bootstrap deploys where the Amplify URL isn't known yet. The placeholders pass the backend's `Settings` validator (so App Runner boots) but fail loudly on the first real request (the browser's CORS check fails noisily, which is the point — bootstrap mode is supposed to be obvious). DEPLOY.md §8 was rewritten: console env-var edits are gone, the only supported path is `cdk deploy magnacms-dev-compute -c cors_origins=... -c images_cdn_base_url=...`.
+The original direction was "ship synthetic placeholders like `https://figurematch-dev.invalid` so the synth never fails." User pushback was correct: that trades a startup/deploy failure for a silent user-visible runtime failure. Now `bin/figurematch.ts` requires `-c cors_origins=...` and `-c images_cdn_base_url=...` for non-local synth; missing values throw with a useful error message. The escape hatch is `-c allow_synthetic_endpoints=true`, which substitutes `https://figurematch-bootstrap.invalid` placeholders for first-bootstrap deploys where the Amplify URL isn't known yet. The placeholders pass the backend's `Settings` validator (so App Runner boots) but fail loudly on the first real request (the browser's CORS check fails noisily, which is the point — bootstrap mode is supposed to be obvious). DEPLOY.md §8 was rewritten: console env-var edits are gone, the only supported path is `cdk deploy figurematch-dev-compute -c cors_origins=... -c images_cdn_base_url=...`.
 
 ### CSRF moved inside RequestID so 403s carry observability
 
@@ -169,7 +169,7 @@ Five feature slices shipped in 12 hours of local-first work. The final polish pa
 
 ### A demo user with real rows
 
-`python -m app.scripts.seed` from [`backend/app/scripts/seed.py`](backend/app/scripts/seed.py) creates `demo@magnacms.dev` / `DemoPass123` plus one brand voice, three content pieces (blog / LinkedIn / email — using the brand voice), one image per piece, and one improvement. The script is idempotent: re-running checks for each row by a natural key (email for the user, name for the voice, topic for the pieces) and skips what already exists. Everything goes through the same services + repositories the live app uses, with `MockLLMProvider` + `MockImageProvider` forced in-script so it runs offline and zero-cost. The dashboard, generate-result, and improver pages all render real rows the first time the demo user signs in — no "empty state, please generate something to see the UI" moment.
+`python -m app.scripts.seed` from [`backend/app/scripts/seed.py`](backend/app/scripts/seed.py) creates `demo@figurematch.dev` / `DemoPass123` plus one brand voice, three content pieces (blog / LinkedIn / email — using the brand voice), one image per piece, and one improvement. The script is idempotent: re-running checks for each row by a natural key (email for the user, name for the voice, topic for the pieces) and skips what already exists. Everything goes through the same services + repositories the live app uses, with `MockLLMProvider` + `MockImageProvider` forced in-script so it runs offline and zero-cost. The dashboard, generate-result, and improver pages all render real rows the first time the demo user signs in — no "empty state, please generate something to see the UI" moment.
 
 ### Account page replaces the settings stub
 
@@ -343,7 +343,7 @@ LinkedIn / email / ad-copy content types, image generation, the dashboard list, 
 
 ## 2026-05-15 — Phase 2 in 12 PRs while away from the keyboard
 
-Phase 2 — AWS infrastructure, frontend scaffolding, and Sentry — landed in twelve sequential PRs ([#120](https://github.com/Eslam93/MagnaCMS/pull/120) through [#130](https://github.com/Eslam93/MagnaCMS/pull/130) plus this docs PR) over a few hours while I was away. The constraint was deliberate: **code only, no `cdk deploy`**. Every PR's gate is `cdk synth --all` on the infra side or `pnpm build` on the frontend, never an actual cloud touch. That keeps the AWS bill at zero until I'm back to babysit the first deployment.
+Phase 2 — AWS infrastructure, frontend scaffolding, and Sentry — landed in twelve sequential PRs ([#120](https://github.com/Eslam93/FigureMatch/pull/120) through [#130](https://github.com/Eslam93/FigureMatch/pull/130) plus this docs PR) over a few hours while I was away. The constraint was deliberate: **code only, no `cdk deploy`**. Every PR's gate is `cdk synth --all` on the infra side or `pnpm build` on the frontend, never an actual cloud touch. That keeps the AWS bill at zero until I'm back to babysit the first deployment.
 
 ### What this entry covers
 
@@ -381,7 +381,7 @@ Step 5 is the one that scared me into the manual-trigger posture. If `scope["cli
 
 ### Frontend in three PRs, in increasing trust
 
-[`P2.9a`](https://github.com/Eslam93/MagnaCMS/pull/127) is the Next.js 15 + Tailwind + shadcn/ui scaffold plus the auth store and API client plumbing — no real product pages, just a landing that links to /login and /register placeholders. [`P2.9b`](https://github.com/Eslam93/MagnaCMS/pull/128) adds those routes for real, with zod validation, react-hook-form, and the 401 interceptor that handles refresh-and-retry transparently. [`P2.9c`](https://github.com/Eslam93/MagnaCMS/pull/129) lifts the dashboard placeholder into a real protected shell with sidebar nav, top-right user menu, and a `/me`-driven dashboard page.
+[`P2.9a`](https://github.com/Eslam93/FigureMatch/pull/127) is the Next.js 15 + Tailwind + shadcn/ui scaffold plus the auth store and API client plumbing — no real product pages, just a landing that links to /login and /register placeholders. [`P2.9b`](https://github.com/Eslam93/FigureMatch/pull/128) adds those routes for real, with zod validation, react-hook-form, and the 401 interceptor that handles refresh-and-retry transparently. [`P2.9c`](https://github.com/Eslam93/FigureMatch/pull/129) lifts the dashboard placeholder into a real protected shell with sidebar nav, top-right user menu, and a `/me`-driven dashboard page.
 
 The 401 interceptor is the one piece worth pulling out:
 
@@ -452,11 +452,11 @@ Two things to do before that:
 
 ## 2026-05-14 — Auth, then two passes of review-driven hardening
 
-Three more PRs landed in close succession: auth foundation, then two rounds of fixes against an external code review. ([#109](https://github.com/Eslam93/MagnaCMS/pull/109), [#110](https://github.com/Eslam93/MagnaCMS/pull/110), [#111](https://github.com/Eslam93/MagnaCMS/pull/111).) The interesting story isn't the auth code itself — register/login/me with bcrypt + JWT is well-trodden ground. The interesting story is what the review caught.
+Three more PRs landed in close succession: auth foundation, then two rounds of fixes against an external code review. ([#109](https://github.com/Eslam93/FigureMatch/pull/109), [#110](https://github.com/Eslam93/FigureMatch/pull/110), [#111](https://github.com/Eslam93/FigureMatch/pull/111).) The interesting story isn't the auth code itself — register/login/me with bcrypt + JWT is well-trodden ground. The interesting story is what the review caught.
 
 ### Auth landed clean, with one footgun we didn't notice
 
-PR [#109](https://github.com/Eslam93/MagnaCMS/pull/109) shipped `POST /auth/register`, `POST /auth/login`, `GET /auth/me`. bcrypt cost 12, JWT HS256, refresh-token cookie (httpOnly, SameSite=Lax, Secure-when-prod). Same `INVALID_CREDENTIALS` error for unknown email vs. wrong password — anti-enumeration by design.
+PR [#109](https://github.com/Eslam93/FigureMatch/pull/109) shipped `POST /auth/register`, `POST /auth/login`, `GET /auth/me`. bcrypt cost 12, JWT HS256, refresh-token cookie (httpOnly, SameSite=Lax, Secure-when-prod). Same `INVALID_CREDENTIALS` error for unknown email vs. wrong password — anti-enumeration by design.
 
 Or so the comment claimed. The actual code:
 
@@ -467,7 +467,7 @@ if user is None or not verify_password(password, user.password_hash):
 
 Python's `or` short-circuits. If `user is None`, `verify_password` doesn't run, no bcrypt cost paid. So `unknown_email` returns in ~5ms and `wrong_password` in ~250ms. A registered email was distinguishable by latency alone, even though both paths returned the same error body. The same-error-message comment was true and the same-cost claim was false — a common shape of bug.
 
-### First review round (PR [#110](https://github.com/Eslam93/MagnaCMS/pull/110))
+### First review round (PR [#110](https://github.com/Eslam93/FigureMatch/pull/110))
 
 Eight items accepted, six pushed back on. The fixes that mattered:
 
@@ -479,7 +479,7 @@ Eight items accepted, six pushed back on. The fixes that mattered:
 
 Pushed back on: the broader Bedrock-instead-of-OpenAI argument (scope), anonymize-instead-of-hard-delete users (deliberately not in scope), partial-where index optimizations (premature at MVP volume), register-endpoint email enumeration (UX trade-off; mitigation is rate-limit in a later phase, not silent success).
 
-### Second review round (PR [#111](https://github.com/Eslam93/MagnaCMS/pull/111))
+### Second review round (PR [#111](https://github.com/Eslam93/FigureMatch/pull/111))
 
 Reviewer caught that the first-round JWT secret validator still accepted any 32+ char string with >2-char variety. `"the-quick-brown-fox-jumps-over-the-lazy-dog"` would pass — and would even decode through base64url to ~33 bytes, slipping through any naive length-of-decoded-bytes check.
 
@@ -511,7 +511,7 @@ Pushing back on the wrong things would have wasted the review. Pushing back on t
 
 ## 2026-05-14 — Backend foundation: skeleton, DB, schema, migration
 
-Four PRs landed in one stretch — the boring-but-load-bearing layer the rest of the app sits on. ([#104](https://github.com/Eslam93/MagnaCMS/pull/104), [#105](https://github.com/Eslam93/MagnaCMS/pull/105), [#106](https://github.com/Eslam93/MagnaCMS/pull/106), [#107](https://github.com/Eslam93/MagnaCMS/pull/107).) The shape of each was determined more by infra correctness than by feature design — small things that ruin a week if you get them wrong on Day 5.
+Four PRs landed in one stretch — the boring-but-load-bearing layer the rest of the app sits on. ([#104](https://github.com/Eslam93/FigureMatch/pull/104), [#105](https://github.com/Eslam93/FigureMatch/pull/105), [#106](https://github.com/Eslam93/FigureMatch/pull/106), [#107](https://github.com/Eslam93/FigureMatch/pull/107).) The shape of each was determined more by infra correctness than by feature design — small things that ruin a week if you get them wrong on Day 5.
 
 ### FastAPI skeleton: middleware order matters
 
@@ -603,7 +603,7 @@ The CI skeletons are intentionally pass-through today: each workflow checks whet
 
 ### Going public
 
-The repo is at https://github.com/Eslam93/MagnaCMS. Before pushing, a five-check secret audit:
+The repo is at https://github.com/Eslam93/FigureMatch. Before pushing, a five-check secret audit:
 
 1. `.env` is not tracked
 2. `OpenAIKey.txt` never appeared in any commit

@@ -19,7 +19,7 @@ OpenAIKey.txt
 .private/
 
 # One-off deploy artifacts (built/generated, never committed).
-frontend/magnacms-frontend.zip
+frontend/figurematch-frontend.zip
 tmp-apprunner-*.json
 infra/github-oidc-trust.json
 
