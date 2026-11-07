@@ -66,7 +66,7 @@ def test_build_prompt_brand_voice_block_appears_when_supplied(module: object) ->
 @pytest.mark.parametrize(
     "module,expected_version",
     [
-        (blog_post, "blog_post.v1"),
+        (blog_post, "blog_post.v2"),
         (linkedin_post, "linkedin_post.v2"),
         (email, "email.v2"),
         (ad_copy, "ad_copy.v2"),

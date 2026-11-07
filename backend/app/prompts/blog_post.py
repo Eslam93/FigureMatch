@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any, Final
 
-PROMPT_VERSION: Final[str] = "blog_post.v1"
+PROMPT_VERSION: Final[str] = "blog_post.v2"
 
 SYSTEM_PROMPT: Final[str] = (
     "You are an expert content strategist and writer. You produce "

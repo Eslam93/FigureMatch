@@ -250,14 +250,14 @@ async def test_prompt_snapshot_persisted_even_on_failure() -> None:
 
     assert piece.system_prompt_snapshot
     assert piece.user_prompt_snapshot
-    assert piece.prompt_version == "blog_post.v1"
+    assert piece.prompt_version == "blog_post.v2"
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "content_type,expected_version",
     [
-        (ContentType.BLOG_POST, "blog_post.v1"),
+        (ContentType.BLOG_POST, "blog_post.v2"),
         (ContentType.LINKEDIN_POST, "linkedin_post.v2"),
         (ContentType.EMAIL, "email.v2"),
         (ContentType.AD_COPY, "ad_copy.v2"),
