@@ -23,9 +23,9 @@ jobs:
       run:
         working-directory: ./backend
     services:
-      # Postgres for the integration suite. Without this, ~19 tests
-      # (auth refresh/rotation, the high-value SQL paths) skip in CI
-      # because `integration_engine` fails to connect.
+      # Postgres for the integration suite (auth refresh/rotation and the
+      # high-value SQL paths). With REQUIRE_DB=1 below, the job fails if
+      # `integration_engine` can't connect, instead of skipping them.
       postgres:
         image: postgres:16
         env:
