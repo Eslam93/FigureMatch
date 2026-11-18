@@ -175,24 +175,28 @@ def render(scored: list[Scored], unlabelled: list[tuple[str, str]]) -> str:
         lines.append(_type_row(_TITLES[kind], [s for s in scored if s.kind == kind]))
     lines.append(_type_row("**All**", scored))
 
-    green = [s for s in scored if s.trap == "false_green" and s.label == "mismatch"]
-    red = [s for s in scored if s.trap == "false_red" and s.label == "match"]
-    plain = [s for s in scored if s.trap is None]
-    wrong_plain = len(plain) - _count(plain, "caught") - _count(plain, "passed")
+    def trap_row(title: str, rows: list[Scored]) -> str:
+        right = _count(rows, "caught") + _count(rows, "passed")
+        return (
+            f"| {title} | {len({r.case for r in rows})} | {len(rows)} | {right} "
+            f"| {_count(rows, 'false green')} | {_count(rows, 'false red')} "
+            f"| {_count(rows, 'not read')} |"
+        )
+
     lines += [
         "",
         "## The traps",
         "",
         "A false-green trap is a mismatch written so that a careless check calls it a match.",
-        "A false-red trap is a match written so that a careless check flags it.",
+        "A false-red trap is a match written so that a careless check flags it. A case is",
+        "counted under its trap with every pair it scores, so the rows add up to the total.",
         "",
-        "| Cases | Pairs | Right | Wrong |",
-        "|---|---|---|---|",
-        f"| False-green traps | {len(green)} | {_count(green, 'caught')} caught "
-        f"| {_count(green, 'false green')} called a match |",
-        f"| False-red traps | {len(red)} | {_count(red, 'passed')} passed "
-        f"| {_count(red, 'false red')} flagged, {_count(red, 'not read')} not read |",
-        f"| Plain cases | {len(plain)} | {len(plain) - wrong_plain} | {wrong_plain} |",
+        "| Kind of case | Cases | Pairs | Right | False green | False red | Not read |",
+        "|---|---|---|---|---|---|---|",
+        trap_row("False-green traps", [s for s in scored if s.trap == "false_green"]),
+        trap_row("False-red traps", [s for s in scored if s.trap == "false_red"]),
+        trap_row("No trap", [s for s in scored if s.trap is None]),
+        trap_row("**All**", scored),
     ]
 
     for outcome, heading in (

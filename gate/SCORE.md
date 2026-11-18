@@ -20,22 +20,24 @@ figures the matcher read for every case are printed by `uv run python score.py -
 |---|---|---|---|---|---|---|---|---|---|---|
 | Price | 20 | 10 | 9 | 1 | 10 | 10 | 0 | 0 | 1 of 10 (10%) | 9 of 9 (100%) |
 | Percentage | 16 | 6 | 6 | 0 | 10 | 10 | 0 | 0 | 0 of 6 (0%) | 6 of 6 (100%) |
-| Date | 17 | 7 | 7 | 0 | 10 | 9 | 0 | 1 | 0 of 7 (0%) | 7 of 7 (100%) |
+| Date | 17 | 7 | 7 | 0 | 10 | 10 | 0 | 0 | 0 of 7 (0%) | 7 of 7 (100%) |
 | Phone | 14 | 6 | 6 | 0 | 8 | 8 | 0 | 0 | 0 of 6 (0%) | 6 of 6 (100%) |
 | Link | 12 | 5 | 5 | 0 | 7 | 7 | 0 | 0 | 0 of 5 (0%) | 5 of 5 (100%) |
 | Promo code | 14 | 6 | 6 | 0 | 8 | 8 | 0 | 0 | 0 of 6 (0%) | 6 of 6 (100%) |
-| **All** | 93 | 40 | 39 | 1 | 53 | 52 | 0 | 1 | 1 of 40 (2%) | 39 of 39 (100%) |
+| **All** | 93 | 40 | 39 | 1 | 53 | 53 | 0 | 0 | 1 of 40 (2%) | 39 of 39 (100%) |
 
 ## The traps
 
 A false-green trap is a mismatch written so that a careless check calls it a match.
-A false-red trap is a match written so that a careless check flags it.
+A false-red trap is a match written so that a careless check flags it. A case is
+counted under its trap with every pair it scores, so the rows add up to the total.
 
-| Cases | Pairs | Right | Wrong |
-|---|---|---|---|
-| False-green traps | 31 | 30 caught | 1 called a match |
-| False-red traps | 41 | 41 passed | 0 flagged, 0 not read |
-| Plain cases | 20 | 19 | 1 |
+| Kind of case | Cases | Pairs | Right | False green | False red | Not read |
+|---|---|---|---|---|---|---|
+| False-green traps | 30 | 32 | 31 | 1 | 0 | 0 |
+| False-red traps | 30 | 41 | 41 | 0 | 0 | 0 |
+| No trap | 18 | 20 | 20 | 0 | 0 | 0 |
+| **All** | 78 | 93 | 92 | 1 | 0 | 0 |
 
 ## False greens
 
@@ -47,7 +49,7 @@ None.
 
 ## Not read
 
-- `date-11` (date): Same day in the same numeric form.
+None.
 
 ## Mismatches reported in a type the case does not label
 

@@ -165,11 +165,12 @@ _MONTH = (
     rf"(?![{_AR_LETTER}]))"
 )
 _ORDINAL = r"(?:st|nd|rd|th)?"
-_YEAR = r"(?:\s*,?\s*(?P<year>\d{4})(?!\d))?"
+_YEAR = r"(?:[\s,-]*(?P<year>\d{4})(?!\d))?"
 
 # 31 December 2026 / ٣١ ديسمبر ٢٠٢٦ / 22 Rajab 1448
 _DAY_MONTH = re.compile(
-    rf"(?i)(?<![\d/.-])(?P<day>\d{{1,2}}){_ORDINAL}\s*(?:of\s+|من\s+)?(?P<month>{_MONTH}){_YEAR}"
+    rf"(?i)(?<![\d/.-])(?P<day>\d{{1,2}}){_ORDINAL}[\s-]*(?:of\s+|من\s+)?"
+    rf"(?P<month>{_MONTH}){_YEAR}"
 )
 # December 31, 2026 / December 1-15, 2026
 _MONTH_DAY = re.compile(
@@ -184,8 +185,9 @@ _RANGE_START = re.compile(
     rf"(?i)(?<![\d/.-])(?P<day>\d{{1,2}}){_ORDINAL}\s*"
     rf"(?:-|to|till|until|through|and|&|{t.arabic('إلى')}|حتى|لغاية|و)\s*$"
 )
-# 30/11/2026, 2027/04/03, 30-11-26
-_NUMERIC_DATE = re.compile(r"(?<![\d/.-])(\d{1,4})([/.-])(\d{1,2})\2(\d{1,4})(?![\d/.-])")
+# 30/11/2026, 2027/04/03, 30-11-26. A full stop may follow, as at the end
+# of a sentence, but not a full stop and another digit.
+_NUMERIC_DATE = re.compile(r"(?<![\d/.-])(\d{1,4})([/.-])(\d{1,2})\2(\d{1,4})(?![\d/-]|\.\d)")
 
 
 def _month_of(name: str) -> tuple[int, bool] | None:
@@ -527,7 +529,9 @@ def _prices(doc: _Text) -> list[Figure]:
 # ── percentages ────────────────────────────────────────────────────────
 
 _PERCENT_SIGN = re.compile(
-    rf"(?:(?<![\d.,])(?P<before>{t.NUMBER})\s?%)|(?:%\s?(?P<after>{t.NUMBER})(?![\d]))"
+    rf"(?:(?:(?<![\d.,])(?P<low>{t.NUMBER})\s?(?:-|to|{t.arabic('إلى')})\s?)?"
+    rf"(?<![\d.,])(?P<before>{t.NUMBER})\s?%)"
+    rf"|(?:%\s?(?P<after>{t.NUMBER})(?![\d]))"
 )
 _PERCENT_WORD = re.compile(
     rf"(?i)(?:per\s?cent|pct)(?![A-Za-z])|{t.arabic('بالمئة')}|{t.arabic('بالمائة')}|بالمية"
@@ -552,9 +556,13 @@ _PERCENT_PHRASE = re.compile(
 def _percentages(doc: _Text) -> list[Figure]:
     found = []
     for match in _PERCENT_SIGN.finditer(doc.plain):
+        if match.group("low"):  # the lower end of a range: "10-20%"
+            low = (t.read_number(match.group("low")).normalize(),)
+            found.append(doc.figure("percentage", match.start(), match.end("low"), low))
         number = match.group("before") or match.group("after")
+        start = match.start("before") if match.group("before") else match.start()
         value = (t.read_number(number).normalize(),)
-        found.append(doc.figure("percentage", match.start(), match.end(), value))
+        found.append(doc.figure("percentage", start, match.end(), value))
     for figure in found:
         doc.claim(figure.start, figure.end)
 
@@ -624,11 +632,12 @@ def _promo_codes(doc: _Text) -> list[Figure]:
 
 _PHONE = re.compile(r"(?<![\w+])(?P<plus>\+)?\(?\d[\d\s\-.()]{3,}\d(?P<trailing_plus>\+)?(?![\w])")
 _PHONE_CUE = re.compile(
-    rf"(?i)(?:call|phone|tel|telephone|mobile|hotline|helpline|whatsapp|contact|dial|fax|sms"
-    rf"|toll[\s-]?free|customer\s+(?:care|service)|call\s+cent(?:er|re)"
+    rf"(?i)(?:(?<![A-Za-z])(?:call|phone|tel|telephone|mobile|hotline|helpline|whatsapp"
+    rf"|contact|dial|fax|sms|toll[\s-]?free|customer\s+(?:care|service)"
+    rf"|call\s+cent(?:er|re))(?![A-Za-z])"
     rf"|{t.arabic('اتصل')}|{t.arabic('للاتصال')}|هاتف|تليفون|جوال|موبايل|{t.arabic('واتساب')}"
     rf"|{t.arabic('واتس اب')}|{t.arabic('الخط الساخن')}|{t.arabic('خدمة العملاء')}"
-    rf"|{t.arabic('مركز الاتصال')}|{t.arabic('للاستفسار')}|تواصل|راسلنا|رقم)"
+    rf"|{t.arabic('مركز الاتصال')}|{t.arabic('للاستفسار')}|تواصل|راسلنا)"
 )
 _COUNTRY_CODES = (
     "971", "966", "974", "973", "965", "968", "962", "961", "964", "963", "970", "967",
