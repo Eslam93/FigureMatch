@@ -11,7 +11,7 @@ It started as a two-day hiring take-home in May 2026: an AI content-marketing st
 ## What is here, and what is not
 
 - **The studio as built in May 2026.** Commit `52dc30b` (tag `take-home-2026-05-16`) is where that work ended. It ran on AWS for a demo that month. The stack was torn down in June 2026 and nothing is deployed today. It runs on your machine, against OpenAI or in mock mode with no key.
-- **A November 2026 audit.** Read again six months later, the code had defects that its passing test suite did not catch. A stolen refresh token stayed valid because its revocation was rolled back. Text costs were recorded 5 to 7.5 times too low. OpenAI had shut down the default image model. And 422 responses echoed back a rejected password. These were fixed in [#154](https://github.com/Eslam93/FigureMatch/pull/154), [#155](https://github.com/Eslam93/FigureMatch/pull/155) and [#156](https://github.com/Eslam93/FigureMatch/pull/156).
+- **A November 2026 audit.** Read again six months later, the code had defects that its passing test suite did not catch. A stolen refresh token stayed valid because its revocation was rolled back. Text costs were recorded 5 to 7.5 times too low. OpenAI had shut down the default image model. And 422 responses echoed back a rejected password. These were fixed in [#154](https://github.com/Eslam93/FigureMatch/pull/154) and [#155](https://github.com/Eslam93/FigureMatch/pull/155). [`audit/`](./audit/) replays them: four probes that fail on the May code and pass on today's, and a rerun of the May suite showing that it executed every faulty line.
 - **The figure checker is not built.** The name is for what may come next: a checker that confirms every figure in an Arabic version matches its English original. Whether it gets built depends on a cheap measurement, set up in [`gate/`](./gate/) before any checker code exists.
 
 ## What the studio does
@@ -107,6 +107,7 @@ FigureMatch/
 ├── backend/            # FastAPI service
 ├── frontend/           # Next.js app
 ├── infra/              # AWS CDK app
+├── audit/              # the November 2026 audit, replayable
 └── gate/               # the measurement that decides whether the figure checker gets built
 ```
 
@@ -180,7 +181,8 @@ uvx --from "reuse[charset-normalizer]==6.3.0" reuse lint
 | [`frontend-ci`](./.github/workflows/frontend-ci.yml) | `frontend/**` changes | ESLint, Prettier, tsc, Vitest, the static export build and its 404 page |
 | [`infra-ci`](./.github/workflows/infra-ci.yml) | `infra/**` changes | tsc, Jest with a snapshot per stack, `cdk synth` with placeholder context |
 | [`model-lifecycle`](./.github/workflows/model-lifecycle.yml) | Mondays 06:17 UTC, manual, and PRs touching the catalog | Fails if a configured model is unknown, unpriced, shut down, shutting down within 30 days, or listed on OpenAI's deprecations page |
-| [`reuse`](./.github/workflows/reuse.yml) | every push and PR | Every file states its copyright and licence |
+| [`audit-replay`](./.github/workflows/audit-replay.yml) | `audit/**` and `backend/**` changes, and manual | The four audit probes fail on the May tag and pass on the commit being built; the May suite still executes every faulty line |
+| [`reuse`](./.github/workflows/reuse.yml) | pushes to `main` and working branches, and every PR | Every file states its copyright and licence |
 
 ## Deployment
 

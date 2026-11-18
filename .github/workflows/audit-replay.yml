@@ -1,0 +1,75 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
+# Replays the November 2026 audit on GitHub's runners (see audit/README.md).
+#
+# The four probes must fail on the May code, tag take-home-2026-05-16, and
+# pass on the commit being built. A second step reruns the May test suite
+# on the May code and fails if which tests executed each faulty line no
+# longer matches what audit/README.md says.
+#
+# Neither step calls OpenAI: the backends run against a local stand-in.
+name: audit-replay
+
+on:
+  push:
+    branches: [main, 'claude/**']
+    paths:
+      - 'audit/**'
+      - 'backend/**'
+      - '.github/workflows/audit-replay.yml'
+  pull_request:
+    paths:
+      - 'audit/**'
+      - 'backend/**'
+      - '.github/workflows/audit-replay.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audit-replay-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+          POSTGRES_DB: app
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The replay unpacks the May tag and reads the fix commit, so it
+          # needs history and tags, not only the commit being built.
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: latest
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Run the four probes on the May tag and on this commit
+        run: python3 audit/replay/run.py
+
+      - name: Report which May tests executed each faulty line
+        run: python3 audit/replay/old_suite.py
