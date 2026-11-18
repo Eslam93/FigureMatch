@@ -216,6 +216,37 @@ No test in the suite reads `input`.
 **The fix** ([#155](https://github.com/Eslam93/FigureMatch/pull/155)) keeps only `loc`,
 `msg` and `type` from each error.
 
+## A fifth defect, found by the replay
+
+On 18 November 2026 a `numbers` run on GitHub's runner reported the replay as not
+reproduced: on the May code, the `default-image-model` probe registered a user and was
+refused on its very next request, `401 "Authenticated user no longer exists"`.
+
+The cause was in both versions. The request's session commits in `get_db_session` after
+the endpoint returns, and FastAPI gives a dependency with `yield` the scope `"request"`
+by default, in which that code runs after the response has been sent. Register, login,
+refresh and logout rely on that commit, so they answered before their writes were
+committed, and a client fast enough could find no user or no token. Driving the ASGI
+app directly showed it every time, for all four routes:
+
+```
+register -> 201: response sent then commit
+login    -> 200: response sent then commit
+refresh  -> 200: response sent then commit
+logout   -> 204: response sent then commit
+```
+
+It is fixed by giving the session dependency `scope="function"`
+([decision 0014](../docs/decisions/0014-commit-before-the-response-is-sent.md)), and
+[`test_commit_before_response.py`](../backend/tests/integration/test_commit_before_response.py)
+fails without the fix, with `['response sent', 'commit']`, and passes with it.
+
+It is not a fifth probe. Over HTTP it shows only as an occasional race, which a probe
+could not make fail every time. Instead, since the May code still has the race, the
+probes wait for each write to land before their next step: a new user by polling
+`/auth/me`, a refresh by waiting half a second, as no request can check a refresh token
+without spending it.
+
 ## What this does not show
 
 - **It never contacts OpenAI.** Defects 2 and 3 are about the outside world: a published
@@ -230,7 +261,8 @@ No test in the suite reads `input`.
 - **The probes were written after the fixes**, on 2026-11-18, from reading both versions
   of the code. They replay the audit. They are not how the defects were found, and a
   probe written knowing the answer is weaker evidence than one written before it.
-- **Four defects, not all of them.** These are the four the README names. Pull requests
-  #154, #155 and #156 fixed others that are not replayed here.
+- **Four defects, not all of them.** These are the four the README names, plus the fifth
+  above, which a test checks instead of a probe. Pull requests #154, #155 and #156 fixed
+  others that are not replayed here.
 - **One platform.** Run on Ubuntu 24.04 with Postgres 16.15, and on GitHub's
   `ubuntu-latest` runners. Not run on Windows or macOS.

@@ -19,6 +19,7 @@ Standard library only.
 from __future__ import annotations
 
 import json
+import time
 import urllib.error
 import urllib.request
 import uuid
@@ -33,6 +34,15 @@ import fake_openai
 
 _PASSWORD = "ReplayProbe2026"  # letters and digits: accepted by the backend
 _SIX_PLACES = Decimal("0.000001")  # the backend stores cost to six decimal places
+
+# The May code answers register, login, refresh and logout before it commits
+# them (a fifth defect, found by this replay; see audit/README.md). So a
+# probe waits for a write to land before its next step, and the race cannot
+# decide a verdict. A registration is waited for by polling /auth/me; a
+# refresh token's rotation has nothing to poll without spending the token,
+# so the probe waits a fixed time, hundreds of times longer than a commit.
+_VISIBLE_WITHIN_SECONDS = 10.0
+_SETTLE_SECONDS = 0.5
 
 # No proxy: every request goes to 127.0.0.1.
 _OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
@@ -143,7 +153,22 @@ def _register(target: Target, label: str) -> Reply:
         },
     )
     _expect(reply, 201, "register")
+    _wait_until_registered(target, reply.json()["access_token"])
     return reply
+
+
+def _wait_until_registered(target: Target, bearer: str) -> None:
+    """Return once the new user is committed and visible to other requests."""
+    deadline = time.monotonic() + _VISIBLE_WITHIN_SECONDS
+    while True:
+        me = call("GET", f"{target.api}/auth/me", bearer=bearer)
+        if me.status == 200:
+            return
+        if time.monotonic() > deadline:
+            raise ProbeError(
+                f"the registered user was not visible after {_VISIBLE_WITHIN_SECONDS}s"
+            )
+        time.sleep(0.05)
 
 
 def _generate_text(target: Target, bearer: str) -> Reply:
@@ -179,6 +204,7 @@ def _stolen_refresh_token(target: Target, result: Result) -> None:
     _expect(thief, 200, "first use of the refresh token")
     if not thief.refresh_cookie:
         raise ProbeError("refresh set no new refresh_token cookie")
+    time.sleep(_SETTLE_SECONDS)  # let the rotation commit; see _SETTLE_SECONDS
 
     # The owner then presents the same token. It is spent, so this is reuse.
     owner = call("POST", f"{target.api}/auth/refresh", refresh_cookie=original)
