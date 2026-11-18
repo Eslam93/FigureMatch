@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """LinkedIn-post prompt module.
 
 Mirrors §7.2 of PROJECT_BRIEF.md. The structured shape mirrors the mock

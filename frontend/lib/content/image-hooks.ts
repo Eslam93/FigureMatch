@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Eslam Hamed
+//
+// SPDX-License-Identifier: MIT
+
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """SecurityHeadersMiddleware — every response carries the baseline set.
 
 Tests run against the live ASGI app so we exercise the actual middleware

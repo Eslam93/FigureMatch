@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Integration tests for /brand-voices CRUD + injection into /content/generate."""
 
 from __future__ import annotations

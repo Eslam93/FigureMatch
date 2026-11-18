@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """FastAPI application factory + ASGI entry point.
 
 Starlette stacks middleware in REVERSE order of `add_middleware()` calls:

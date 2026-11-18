@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Structural tests for the ORM models.
 
 Verifies columns, FK targets, enum membership, and the indexes we depend on.

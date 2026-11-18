@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Eslam Hamed
+//
+// SPDX-License-Identifier: MIT
+
 /**
  * DataStack — RDS Postgres + ElastiCache Redis + S3 images bucket
  * + Secrets Manager entries.

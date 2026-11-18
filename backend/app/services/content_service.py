@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Content generation orchestration.
 
 Slice 2 widens this from "blog only" to all four content types: blog

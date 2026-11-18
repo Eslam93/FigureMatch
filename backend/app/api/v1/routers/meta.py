@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Public metadata the frontend needs before anyone signs in.
 
 ``provider_mode`` lets the UI warn that generations are canned when the

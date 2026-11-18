@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Smoke tests for the four prompt modules.
 
 These prove the contract, not the wording, which

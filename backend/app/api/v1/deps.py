@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Shared FastAPI dependencies for the v1 API."""
 
 from __future__ import annotations

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Ad-copy prompt module.
 
 Mirrors §7.3 of PROJECT_BRIEF.md. The prompt asks for three variants

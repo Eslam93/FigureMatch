@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Eslam Hamed
+//
+// SPDX-License-Identifier: MIT
+
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";

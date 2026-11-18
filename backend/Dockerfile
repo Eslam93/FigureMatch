@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 # syntax=docker/dockerfile:1.7
 ARG PYTHON_VERSION=3.12
 

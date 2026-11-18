@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Tests for the `cors_origins` localhost validator.
 
 The deploy default in `compute-stack.ts` is `http://localhost:3000`

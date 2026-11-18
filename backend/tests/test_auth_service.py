@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Unit-level regression guards for AuthService refresh & logout (P1.6).
 
 The integration suite exercises the happy and reuse paths against a real

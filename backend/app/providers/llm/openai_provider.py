@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """OpenAI chat-completion provider.
 
 Wraps the async `openai` SDK with:

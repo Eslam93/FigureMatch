@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Security response headers middleware.
 
 Applies a baseline of headers every browser expects from a production

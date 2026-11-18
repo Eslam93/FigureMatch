@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Eslam Hamed
+//
+// SPDX-License-Identifier: MIT
+
 /**
  * Zod schema for the /generate form. Mirrors the backend Pydantic
  * GenerateRequest constraints (see backend/app/schemas/content.py) so

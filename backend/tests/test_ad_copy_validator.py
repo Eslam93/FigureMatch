@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Tests for the AdCopyResult one-of-each-format validator.
 
 The Pydantic schema enforces the 3-variant count and per-variant

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Shared pytest fixtures for the backend test suite."""
 
 from __future__ import annotations

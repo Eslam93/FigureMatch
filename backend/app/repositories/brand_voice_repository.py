@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Data access for `brand_voices`.
 
 Thin async repository — same shape pattern as `ContentRepository` /

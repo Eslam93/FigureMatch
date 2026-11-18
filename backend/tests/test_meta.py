@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """GET /api/v1/meta: the public provider mode + app version the frontend reads."""
 
 from __future__ import annotations

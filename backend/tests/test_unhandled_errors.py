@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Unhandled exceptions get the INTERNAL_ERROR envelope inside the middleware stack.
 
 Starlette runs an `Exception` handler in ServerErrorMiddleware, outside

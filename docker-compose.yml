@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 # FigureMatch — local-dev orchestration.
 # `docker compose up` brings up Postgres + the backend. The frontend runs
 # outside compose: `pnpm dev` in `frontend/` (see the README's Quick start).

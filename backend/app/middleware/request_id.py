@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """X-Request-ID middleware. Pure-ASGI implementation.
 
 `BaseHTTPMiddleware` runs `call_next` in a child task spawned by anyio.

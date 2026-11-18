@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Image provider protocol and result types.
 
 Mirrors the LLM provider surface: a single `generate` method that

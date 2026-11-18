@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Per-path, per-IP in-memory rate limit middleware.
 
 MVP-grade: a fixed-window counter keyed on `(rule_key, ip)` where

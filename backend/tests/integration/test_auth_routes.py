@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Integration tests for /auth/register, /auth/login, /auth/refresh, /auth/logout, /auth/me.
 
 Each test runs inside a transaction that rolls back on teardown, so the

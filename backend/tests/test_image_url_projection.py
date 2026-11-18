@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Pin the projection rule: image URL is computed fresh from
 `s3_key` + storage config, NEVER read from the persisted `cdn_url`.
 

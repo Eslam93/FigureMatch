@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """The corrective retry's note: what failed, field by field, never the values.
 
 The content and improver services send this note on their second attempt,

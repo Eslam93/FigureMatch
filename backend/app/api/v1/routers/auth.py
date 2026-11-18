@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """/auth/* endpoints — register, login, refresh, logout, current user."""
 
 from __future__ import annotations

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """/improve and /improvements/* endpoints.
 
 Slice 5 ships POST /improve (non-streaming — the brief explicitly

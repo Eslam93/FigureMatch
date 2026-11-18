@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Eslam Hamed
+//
+// SPDX-License-Identifier: MIT
+
 /**
  * Logout must clear the TanStack Query cache so a second user signing
  * in on the same browser never observes the first user's data while a

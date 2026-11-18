@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Eslam Hamed
+//
+// SPDX-License-Identifier: MIT
+
 /**
  * ComputeStack — ECR repo, App Runner service, IAM role, migration
  * task definition.

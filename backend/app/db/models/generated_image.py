@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """AI-generated image bound to a content piece.
 
 `is_current` marks the active image for a piece — at most one row per

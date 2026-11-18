@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """The model catalog — lookup, classification, lifecycle date logic.
 
 Every date-sensitive assertion passes an explicit `on=` date, so these

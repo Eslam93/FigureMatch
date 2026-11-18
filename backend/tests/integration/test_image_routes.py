@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Integration tests for the image-generation endpoints.
 
 Covers POST /content/{id}/image (with regenerate) and

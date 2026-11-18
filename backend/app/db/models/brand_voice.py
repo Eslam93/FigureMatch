@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Brand voice profile.
 
 A user-owned style preset that is injected into generation prompts via the

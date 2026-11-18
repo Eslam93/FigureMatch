@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Unit tests for the Markdown export service.
 
 Covers the pure transform: slug generation, header shape, image embed,

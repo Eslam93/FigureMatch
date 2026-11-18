@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Unit tests for `ImageService` — the three-stage orchestration loop.
 
 Uses fake providers + in-memory session stand-ins (same pattern as

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Pin the wire contract: /auth/register with a weak password returns
 422 with `error.code = "WEAK_PASSWORD"`, not the generic
 `VALIDATION_FAILED`.

@@ -1,3 +1,8 @@
+# SPDX-FileCopyrightText: 2009-2026 Michael Bayer
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Alembic environment — async edition.
 
 Adapted from the official `async` template in the SQLAlchemy 2.0 docs.

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Check the configured OpenAI models against the catalog and OpenAI's
 deprecations page.
 

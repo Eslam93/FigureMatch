@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Unit tests for `LocalImageStorage` and the `public_url_for` contract.
 
 The Slice 3 storage layer originally returned `(key, url)` and the

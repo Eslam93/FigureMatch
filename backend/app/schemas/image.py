@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Pydantic request / response schemas for /content/{id}/image(s)."""
 
 from __future__ import annotations

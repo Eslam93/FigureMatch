@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Content export — Markdown only for now.
 
 The brief's feature #3 lists "view, copy, download, delete" for the

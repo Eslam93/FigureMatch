@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Unit tests for password hashing, JWT, and refresh-token generation."""
 
 from __future__ import annotations

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Refresh token storage.
 
 We never persist the raw token — only its SHA-256 hash. On every refresh,

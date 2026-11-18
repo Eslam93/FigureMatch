@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Eslam Hamed
+//
+// SPDX-License-Identifier: MIT
+
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { useAuthStore } from "@/lib/auth-store";

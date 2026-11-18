@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Runtime configuration sourced from environment variables and `.env`.
 
 All settings are validated at startup. Placeholder secrets are accepted in

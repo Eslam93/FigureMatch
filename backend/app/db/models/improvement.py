@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Improvement record — original text + improved text + explanation.
 
 Each row captures one /improve invocation. Soft-deletable so users can

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """structlog configuration. JSON output to stdout, request-context aware."""
 
 from __future__ import annotations

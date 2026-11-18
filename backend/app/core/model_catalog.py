@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Dated catalog of the OpenAI models this app can be configured with.
 
 The single source of truth for model ids, prices and lifecycle (shutdown

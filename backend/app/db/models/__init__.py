@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """ORM models. Importing this package registers every model with `Base.metadata`."""
 
 from app.db.models.brand_voice import BrandVoice

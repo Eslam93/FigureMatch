@@ -1,0 +1,60 @@
+# Copyright and licence for files that carry no header of their own.
+# Every other file states both at its top. Checked in CI by `reuse lint`
+# (https://reuse.software).
+
+version = 1
+SPDX-PackageName = "FigureMatch"
+SPDX-PackageDownloadLocation = "https://github.com/Eslam93/FigureMatch"
+
+# Documents. Markdown gets no header because an HTML comment would not
+# show on the rendered page, and nothing in this repository is hidden.
+[[annotations]]
+path = "**/*.md"
+SPDX-FileCopyrightText = "2026 Eslam Hamed"
+SPDX-License-Identifier = "MIT"
+
+# Package metadata. JSON takes no comments.
+[[annotations]]
+path = ["frontend/package.json", "infra/package.json"]
+SPDX-FileCopyrightText = "2026 Eslam Hamed"
+SPDX-License-Identifier = "MIT"
+
+# The parity gate's data files. JSON Lines takes no comments.
+[[annotations]]
+path = "gate/**/*.jsonl"
+SPDX-FileCopyrightText = "2026 Eslam Hamed"
+SPDX-License-Identifier = "MIT"
+
+# Golden prompts: the prompt templates in backend/app/prompts, rendered by
+# the tests and compared byte for byte, so a header would break them.
+[[annotations]]
+path = "backend/tests/golden/prompts/*.txt"
+SPDX-FileCopyrightText = "2026 Eslam Hamed"
+SPDX-License-Identifier = "MIT"
+
+# Alembic's migration template with its type hints modernised. A header
+# here would be copied into every migration generated from it.
+[[annotations]]
+path = "backend/alembic/script.py.mako"
+SPDX-FileCopyrightText = ["2009-2026 Michael Bayer", "2026 Eslam Hamed"]
+SPDX-License-Identifier = "MIT"
+
+# Tool output: lock files, Jest snapshots of the CDK stacks, and config
+# written by `cdk init`, create-next-app and `shadcn init`. No person wrote
+# these, so none is named; CC0 waives whatever rights could exist in them.
+[[annotations]]
+path = [
+  "backend/uv.lock",
+  "frontend/pnpm-lock.yaml",
+  "infra/package-lock.json",
+  "infra/test/__snapshots__/*.snap",
+  "infra/cdk.json",
+  "infra/jest.config.js",
+  "infra/tsconfig.json",
+  "frontend/tsconfig.json",
+  "frontend/components.json",
+  "frontend/postcss.config.mjs",
+  "backend/alembic/versions/.gitkeep",
+]
+SPDX-FileCopyrightText = "NONE"
+SPDX-License-Identifier = "CC0-1.0"

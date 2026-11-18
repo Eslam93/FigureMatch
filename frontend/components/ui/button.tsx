@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2023 shadcn
+//
+// SPDX-License-Identifier: MIT
+
 "use client";
 
 import { Slot } from "@radix-ui/react-slot";

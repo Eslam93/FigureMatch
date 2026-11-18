@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Tests for the async DB engine/session singletons.
 
 Real query tests live alongside the models that introduce schema (P1.3+).

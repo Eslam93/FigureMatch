@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """`app.scripts.check_model_lifecycle` — offline checks, the deprecations
 parser, and the CLI's exit codes.
 

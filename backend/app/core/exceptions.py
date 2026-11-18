@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Application exception hierarchy and FastAPI handlers.
 
 Every error response follows the same envelope:

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Hardening tests added in P1.5.1 (and extended in P1.5.2).
 
 Coverage map for the specific failure modes flagged in external review:

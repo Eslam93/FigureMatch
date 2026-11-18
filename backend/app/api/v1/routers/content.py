@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """/content/* endpoints.
 
 Slice 2 widened POST /content/generate to all four content types. Slice 4

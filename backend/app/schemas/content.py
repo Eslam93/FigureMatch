@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Pydantic request / response schemas for /content/* endpoints.
 
 Slice 2 widens the response result to a union across all four content

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """BedrockClaudeProvider — documented stub.
 
 The brief calls for Bedrock + Claude Sonnet 4.5 + Nova Canvas as an

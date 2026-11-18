@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "AWS CDK app for FigureMatch infrastructure (TypeScript)",
+  "author": "Eslam Hamed (https://eslamhamed.com)",
   "bin": {
     "figurematch": "bin/figurematch.js"
   },

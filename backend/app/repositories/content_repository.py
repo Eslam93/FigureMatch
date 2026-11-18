@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Data access for `content_pieces`.
 
 Thin async repository — no business logic, no validation. The service

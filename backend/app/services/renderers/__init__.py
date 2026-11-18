@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Per-content-type renderers.
 
 Each module exports a pure `render(result) -> str`. Renderers run once

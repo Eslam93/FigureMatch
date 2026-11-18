@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Password hashing, JWT encoding/decoding, refresh-token generation.
 
 All inputs and outputs are deliberately strict: typed, narrow, and easy to

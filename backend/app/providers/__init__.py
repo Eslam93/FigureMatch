@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """AI provider abstractions.
 
 Two protocols (`ILLMProvider`, `IImageProvider`) with three implementations

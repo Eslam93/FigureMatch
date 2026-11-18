@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """OpenAI GPT Image provider (Images API, default `gpt-image-2.5-flare`).
 
 Same retry, error-mapping and logging contract as the chat provider: SDK

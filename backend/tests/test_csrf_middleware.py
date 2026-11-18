@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Tests for the Origin-based CSRF guard.
 
 The middleware protects cookie-borne auth state-change endpoints

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """OpenAIImageProvider — retry, token-based cost, b64 decode, error mapping."""
 
 from __future__ import annotations

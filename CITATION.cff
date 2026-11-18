@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
+cff-version: 1.2.0
+message: "If you refer to this repository, please cite it as below."
+type: software
+title: "FigureMatch"
+abstract: >-
+  An AI content studio: a Next.js and FastAPI app that drafts marketing copy
+  and matching images with OpenAI and keeps each user's work in Postgres,
+  with its AWS deployment written in CDK. The bilingual Arabic/English
+  figure checker its name refers to is not built.
+authors:
+  - given-names: "Eslam"
+    family-names: "Hamed"
+    website: "https://eslamhamed.com"
+repository-code: "https://github.com/Eslam93/FigureMatch"
+url: "https://eslamhamed.com"
+license: MIT

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Data access for the `refresh_tokens` table.
 
 The rotation primitive (`consume_if_active`) uses a single UPDATE that

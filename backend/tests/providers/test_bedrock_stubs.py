@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Bedrock provider stubs.
 
 The point of these tests: lock down that the stubs **raise at

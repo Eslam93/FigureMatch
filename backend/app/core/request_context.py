@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Per-request context variables. Populated by middleware, consumed by logging."""
 
 from __future__ import annotations

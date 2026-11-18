@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 # Weekly check that the OpenAI models this app ships with are still alive
 # and priced.
 #

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Integration tests for POST /api/v1/content/generate.
 
 Uses MockLLMProvider end-to-end so the tests don't reach out to OpenAI.

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """RateLimitMiddleware — enforcement, 429 envelope, isolation, cleanup.
 
 We don't go through the real auth endpoints (those need a DB). Instead

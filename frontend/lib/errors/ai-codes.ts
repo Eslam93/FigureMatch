@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Eslam Hamed
+//
+// SPDX-License-Identifier: MIT
+
 /**
  * Friendly copy for the error codes the backend returns when the AI
  * provider fails. The envelope's own message is safe to show, but this

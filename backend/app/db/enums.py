@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Enumerated types used in the database schema.
 
 Each `StrEnum` corresponds to a Postgres `CREATE TYPE ... AS ENUM` produced by

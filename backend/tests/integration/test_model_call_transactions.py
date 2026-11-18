@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Model calls run with no database transaction open on the request session.
 
 The current-user and brand-voice reads autobegin a transaction on the

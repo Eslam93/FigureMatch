@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Integration-test fixtures: live Postgres + per-test transactional rollback.
 
 Pattern (well-documented in the SQLAlchemy 2.0 async docs):

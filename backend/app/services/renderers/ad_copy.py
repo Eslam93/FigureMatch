@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Ad-copy → markdown renderer.
 
 Layout (per §7.0.1 of PROJECT_BRIEF.md): each variant is grouped under

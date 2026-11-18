@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """User account.
 
 Email uses Postgres `citext` so uniqueness is case-insensitive without forcing

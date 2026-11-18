@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """MockLLMProvider — zero-cost, zero-key, fully working LLM stand-in.
 
 Used by:

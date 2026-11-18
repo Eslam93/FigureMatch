@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """OpenAI SDK errors become typed `ProviderError`s without upstream text.
 
 Both OpenAI providers run against scripted HTTP answers

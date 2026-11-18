@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Unit tests for the three-stage parse fallback in ContentService.
 
 The service is exercised end-to-end against a real test session in

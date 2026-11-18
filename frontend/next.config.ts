@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Eslam Hamed
+//
+// SPDX-License-Identifier: MIT
+
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {

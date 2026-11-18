@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Eslam Hamed
+//
+// SPDX-License-Identifier: MIT
+
 /**
  * App-level integration test: instantiate the full app, synth it,
  * verify all five stacks are present and connected correctly.

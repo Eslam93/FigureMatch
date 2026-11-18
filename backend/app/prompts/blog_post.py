@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Blog-post prompt module.
 
 Mirrors §7.1 of PROJECT_BRIEF.md. The system/user strings and the JSON

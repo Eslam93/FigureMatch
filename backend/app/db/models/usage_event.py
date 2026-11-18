@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Per-user activity record.
 
 Inline usage on content_pieces / improvements is the canonical source in the

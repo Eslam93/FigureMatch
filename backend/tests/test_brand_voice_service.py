@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Unit tests for `render_brand_voice_block` — the single function that
 turns a `BrandVoice` row into the prompt-friendly text block.
 """

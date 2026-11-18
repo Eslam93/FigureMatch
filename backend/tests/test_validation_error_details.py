@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """422 responses must never echo what the client submitted.
 
 Pydantic's error dicts carry `input`, the rejected value itself, so the

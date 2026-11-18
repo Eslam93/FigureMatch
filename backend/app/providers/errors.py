@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Provider-layer exceptions: the one `ProviderError` family.
 
 Every provider failure is a `ProviderError` whose `kind` says why it

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """v1 router aggregator. Mount point for every /api/v1/* router."""
 
 from fastapi import APIRouter

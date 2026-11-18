@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Email prompt module.
 
 Mirrors §7.4 of PROJECT_BRIEF.md. Structured around a marketing-style

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Image-prompt builder.
 
 Mirrors §7.5 of PROJECT_BRIEF.md. Runs as a separate LLM call AFTER

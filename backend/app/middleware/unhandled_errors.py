@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Catch-all for unhandled exceptions, inside the middleware stack.
 
 Starlette runs an `Exception` handler in `ServerErrorMiddleware`, which

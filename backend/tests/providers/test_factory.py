@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Provider factory — mode selection, caching, reset hook."""
 
 from __future__ import annotations

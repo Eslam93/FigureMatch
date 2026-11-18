@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Improver service — analyze + rewrite, two-pass chain.
 
 PROJECT_BRIEF §7.6 asks for a two-call chain: ANALYZE returns issues +

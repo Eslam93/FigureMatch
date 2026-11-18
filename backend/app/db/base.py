@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Declarative base and common ORM mixins.
 
 Every aggregate root extends `Base` and typically picks up `TimestampedMixin`

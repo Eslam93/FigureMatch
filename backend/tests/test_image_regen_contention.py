@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Test the SELECT ... FOR UPDATE NOWAIT contention path on image regen.
 
 Round 2 swapped the round-1 blocking lock for NOWAIT + 409 — a

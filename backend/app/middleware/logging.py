@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Per-request access log. Emits one structured line per request.
 
 Pure-ASGI implementation matching the same rationale as `RequestIDMiddleware`:

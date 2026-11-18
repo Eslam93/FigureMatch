@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Auth business logic: register, login, refresh, logout, current user.
 
 The refresh path uses single-use rotation: the incoming token is claimed

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 name: deploy
 
 # Manual-dispatch only until the first successful deploy is verified.

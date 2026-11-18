@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """A real `AsyncOpenAI` client whose HTTP calls get scripted answers.
 
 The SDK runs unchanged on an `httpx.MockTransport`, so a test sees the

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Stage 2 of the parse fallback: the corrective retry.
 
 When a model reply fails to parse, the content and improver services call

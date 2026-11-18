@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Golden files pin the first-attempt text prompts, word for word.
 
 Each case renders one prompt from fixed inputs: the four content types, with a

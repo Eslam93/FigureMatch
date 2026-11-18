@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Each kind of provider failure gets a fixed status, code and message.
 
 The codes are a contract with the frontend, which maps them to friendly

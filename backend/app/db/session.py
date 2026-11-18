@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Async SQLAlchemy engine, session factory, and FastAPI dependency.
 
 The engine and sessionmaker are lazy singletons — created on first use so

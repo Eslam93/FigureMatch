@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Eslam Hamed
+//
+// SPDX-License-Identifier: MIT
+
 /**
  * ObservabilityStack — placeholder for CloudWatch alarms (P11.6) and
  * any other observability resources that DON'T have an App-Runner-

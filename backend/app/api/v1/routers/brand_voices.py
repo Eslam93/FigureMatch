@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """/brand-voices CRUD endpoints.
 
 Standard list / create / detail / update / delete. The PATCH endpoint

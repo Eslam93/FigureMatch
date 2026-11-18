@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Content piece — a single generated output.
 
 Stores both the structured result (`result` jsonb) and a server-rendered plain

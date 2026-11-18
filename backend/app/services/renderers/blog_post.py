@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Blog-post → markdown renderer.
 
 Maps the structured `BlogPostResult` into clean GitHub-flavored markdown:

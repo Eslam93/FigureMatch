@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """MockLLMProvider + MockImageProvider — full behavioral coverage.
 
 These tests double as the schema-drift detector for the canned mock

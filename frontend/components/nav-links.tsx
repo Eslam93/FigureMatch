@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Eslam Hamed
+//
+// SPDX-License-Identifier: MIT
+
 "use client";
 
 import { LayoutDashboard, Mic, PenSquare, Settings, Sparkles } from "lucide-react";

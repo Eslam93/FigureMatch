@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Boot-time validation of the configured OpenAI models.
 
 `Settings` refuses a model OpenAI has shut down in every environment, and

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Image provider implementations."""
 
 from app.providers.image.base import IImageProvider, ImageQuality, ImageResult

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Data access for `improvements`.
 
 Thin async repository. Same shape pattern as `ContentRepository` —

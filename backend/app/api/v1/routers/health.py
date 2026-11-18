@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Health endpoint. Reports service version and downstream-dep status.
 
 Probes attach as the components they depend on land:

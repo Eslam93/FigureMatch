@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """LLM provider protocol and result types.
 
 `ILLMProvider` is the surface every chat-model implementation conforms

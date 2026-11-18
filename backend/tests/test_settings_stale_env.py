@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """A `.env` written for an older backend must keep loading.
 
 Developers copy `.env.example` to `.env` once and keep it, so settings the

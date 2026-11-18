@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Eslam Hamed
+//
+// SPDX-License-Identifier: MIT
+
 /**
  * Pure CDK-context resolver for the two endpoint values App Runner has
  * to know at synth time: `cors_origins` (allowed browser origins) and

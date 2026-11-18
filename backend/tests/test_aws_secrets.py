@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Unit tests for `app.core.aws_secrets`.
 
 The module is only exercised when running against AWS; locally `boto3` is

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """CORS configuration smoke tests.
 
 The contract: explicit origin allowlist, `allow_credentials=True`, no

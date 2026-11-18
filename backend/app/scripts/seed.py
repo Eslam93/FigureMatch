@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Seed the database with demo content.
 
 Idempotent — re-running won't create duplicate users, voices, or pieces.

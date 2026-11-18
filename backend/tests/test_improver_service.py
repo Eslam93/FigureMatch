@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Unit tests for ImproverService — the analyze + rewrite chain.
 
 Locks the per-stage fallback semantics and the cost summation across

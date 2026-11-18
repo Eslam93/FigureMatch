@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Integration tests for the dashboard endpoints.
 
 Covers GET /content (list with pagination + filter + FTS search),

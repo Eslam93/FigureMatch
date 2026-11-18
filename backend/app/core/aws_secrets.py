@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """AWS Secrets Manager fetch for runtime credential assembly.
 
 App Runner's `RuntimeEnvironmentSecrets` injects the full secret value

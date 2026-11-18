@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 # Lockfile is owned by pnpm — its formatting is dictated by the tool,
 # not the repo's prettier config.
 pnpm-lock.yaml

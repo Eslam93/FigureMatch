@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Image generation orchestration.
 
 Slice 3 connects three moving parts that have been stubbed for a while:

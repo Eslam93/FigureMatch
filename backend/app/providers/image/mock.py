@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """MockImageProvider — returns a deterministic placeholder PNG.
 
 Real-world image generation is slow (8–15s) and paid. The mock returns

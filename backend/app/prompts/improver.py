@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Improver prompt module — analyze + rewrite, two distinct calls.
 
 Mirrors §7.6 of PROJECT_BRIEF.md. The brief asks for a two-pass chain:

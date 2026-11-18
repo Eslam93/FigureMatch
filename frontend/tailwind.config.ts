@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: 2023 shadcn
+// SPDX-FileCopyrightText: 2026 Eslam Hamed
+//
+// SPDX-License-Identifier: MIT
+
 import typography from "@tailwindcss/typography";
 import type { Config } from "tailwindcss";
 

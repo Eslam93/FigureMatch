@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Provider factory.
 
 Reads `AI_PROVIDER_MODE` from settings and returns the matching

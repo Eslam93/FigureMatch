@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Integration tests for /improve and /improvements/* endpoints.
 
 Forces the mock LLM provider so the analyze + rewrite chain runs

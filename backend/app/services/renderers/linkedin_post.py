@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """LinkedIn-post → plain text renderer.
 
 Layout (per §7.0.1 of PROJECT_BRIEF.md):

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Data access for `generated_images`.
 
 Same shape as `ContentRepository`: thin async wrapper around the ORM,

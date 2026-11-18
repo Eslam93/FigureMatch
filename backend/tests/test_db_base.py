@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Smoke tests for the ORM base + mixins.
 
 Verifies the public surface — real schema tests arrive with the models in P1.3.

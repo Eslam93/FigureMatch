@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Database package — declarative `Base`, common mixins, async session plumbing.
 
 Importing this package also imports every model so they are registered with

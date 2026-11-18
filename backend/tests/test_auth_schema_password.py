@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Pydantic-layer password validation tests.
 
 Round 2 moved the strength + bcrypt-bytes checks from the service

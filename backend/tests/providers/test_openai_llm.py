@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """OpenAIChatProvider — retry, cost, structured-output, error mapping.
 
 We never hit the real API in tests. The openai SDK exposes

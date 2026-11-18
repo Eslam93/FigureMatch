@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Classify OpenAI SDK exceptions into `ProviderError` kinds.
 
 Shared by the chat and image providers, so both map a failure the same

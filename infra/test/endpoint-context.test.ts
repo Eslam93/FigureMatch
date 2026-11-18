@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Eslam Hamed
+//
+// SPDX-License-Identifier: MIT
+
 /**
  * Unit tests for `resolveEndpointContext`. The point of this test file
  * is to lock down the strict validation introduced after PR #144 left

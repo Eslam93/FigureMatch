@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Origin-based CSRF guard for cookie-authenticated state-changing requests.
 
 The refresh cookie is `SameSite=none` in the deployed cross-site posture

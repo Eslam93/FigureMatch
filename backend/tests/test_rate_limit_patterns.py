@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Tests for the pattern-rule branch of the rate-limit middleware.
 
 The exact-path dict is already covered by `test_rate_limit.py`; this

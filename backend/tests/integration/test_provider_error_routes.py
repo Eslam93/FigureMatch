@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
 """Upstream AI failures reach the client as typed errors without upstream text.
 
 The real OpenAI providers serve the real routes against scripted HTTP
