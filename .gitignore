@@ -18,8 +18,9 @@ OpenAIKey.txt
 # Internal planning / working notes — local-only.
 .private/
 
-# One-off deploy artifacts (built/generated, never committed).
-frontend/figurematch-frontend.zip
+# One-off deploy artifacts (built/generated, never committed). A pattern,
+# not a file name, so renaming the project can't un-ignore an old build.
+frontend/*-frontend.zip
 tmp-apprunner-*.json
 infra/github-oidc-trust.json
 
