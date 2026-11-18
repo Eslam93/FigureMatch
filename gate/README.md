@@ -54,6 +54,12 @@ and Premium prices are swapped, but both versions list the amounts in the same o
 matcher that pairs figures by order cannot see which plan a price belongs to. Seeing it
 means reading the words around each figure, which this matcher does not do.
 
+**A known risk for the scan.** A word in capitals with a digit in it reads as a promo code
+even with no "code" nearby, so product codes such as `RTX4090` or `SM-A556E` are read as
+codes. Where both versions name the same product this pairs and does no harm; where one
+version leaves the product code out, it will be reported as a promo-code mismatch. The
+scan's precision for promo codes will show how often that happens.
+
 **What the score is worth.** The author of the matcher had read every labelled case
 before writing it. The score shows that the matcher handles the traps written into those
 cases. It says nothing about how often real pages trip it, which only the scan can show.
