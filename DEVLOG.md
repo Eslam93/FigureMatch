@@ -2,6 +2,14 @@
 
 A running journal of decisions, trade-offs, and progress on FigureMatch. Newest entries first. Each entry is written when something interesting happens — not on a schedule — so the cadence reflects the actual pace of work.
 
+> **Read this as a record of May 2026, 18 November 2026.** The entries below were written
+> from 14 to 16 May 2026 and are left as written. Where they say something is live,
+> deployed or verified, that was as of May: the deployment was taken down in June 2026.
+> Where they call something done, the November audit found four places where it was not,
+> behind a passing test suite; [`audit/`](./audit/) replays them. Entries mention Redis,
+> Bedrock, CloudFront and an S3 adapter as coming; none was built. Later changes are
+> recorded in their pull requests and in [`docs/decisions/`](./docs/decisions/).
+
 ---
 
 ## 2026-05-16 — Demo-day docs polish (PR #147)

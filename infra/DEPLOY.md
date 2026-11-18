@@ -1,6 +1,21 @@
 # Deploying FigureMatch to AWS — manual runbook
 
-This document walks through the first `cdk deploy` and the post-deploy bootstrap steps. After that's done once, `deploy.yml` handles every subsequent push to `main`.
+> **Status, 18 November 2026.** This is the runbook the studio was deployed with by hand
+> on 15 May 2026. The deployment was taken down in June 2026 and the runbook has not been
+> run since. It is kept as a record, and it is known to be incomplete:
+>
+> - Step 6 looks up a security group named `figurematch-dev-fargate-egress`. It was
+>   created by hand during the May deploy, and no stack defines it.
+> - Steps 4 and 5 call `cdk deploy` without the `cors_origins` and `images_cdn_base_url`
+>   context that synth now requires for every stack.
+> - `deploy.yml`, which steps 12 and "Routine deploys" rely on, never completed a run: its
+>   only run, on 15 May 2026, failed because its OIDC role was never configured. Every
+>   deploy was manual.
+> - Step 11 refers to a "Live demo" section the README no longer has.
+>
+> Fix those before following it.
+
+This document walks through the first `cdk deploy` and the post-deploy bootstrap steps.
 
 ## Prerequisites
 

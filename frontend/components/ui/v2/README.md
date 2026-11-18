@@ -2,6 +2,11 @@
 
 Drop-in successor to `components/ui/*` and the inline-styled blocks scattered across `components/features/*`. v2 is **additive** — nothing in v1 changes, and the two systems coexist while features migrate.
 
+> **Where it stands, 18 November 2026.** The tokens and the Tailwind fragment in §2 are
+> already installed, since May 2026. The migration in §4 is part done: 13 files import from
+> `@/components/ui/v2`, and 14 still import the v1 primitives, 8 of them alongside v2. The
+> v1 files have not been removed. §2 and §4 are kept as written in May.
+
 > **TL;DR**: install the tokens (1 paste), merge the Tailwind fragment (1 paste), import from `@/components/ui/v2`, and incrementally replace v1 imports as you touch each feature.
 
 ---

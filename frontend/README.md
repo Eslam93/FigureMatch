@@ -1,101 +1,87 @@
-# Frontend — Next.js 15 (App Router)
+# Frontend
 
-TypeScript, Tailwind v3, shadcn/ui, TanStack Query for server state, Zustand for the in-memory access token, openapi-fetch for the typed API client, sonner for toasts, React Hook Form + Zod for forms. Tooling: pnpm, ESLint, Prettier, Vitest, `tsc --noEmit`.
+Next.js 15 (App Router) in TypeScript, built as a static export. Tailwind with shadcn/ui
+primitives and the newer kit in [`components/ui/v2`](./components/ui/v2/); TanStack Query
+for server state; Zustand for the in-memory access token; openapi-fetch for API calls;
+sonner for toasts; React Hook Form and Zod for forms. Tooling: pnpm, ESLint, Prettier,
+Vitest and `tsc --noEmit`.
 
-> Top-level repo docs (architecture, deployment, API surface): [`../README.md`](../README.md). This file covers frontend-specific commands and conventions only.
+How the whole studio runs is in the top-level [`README.md`](../README.md). This file covers
+the frontend only.
 
 ## Routes
 
 Public:
 
-- `/` — landing
-- `/login`, `/register` — JWT auth pages (httpOnly refresh cookie + in-memory access token)
+- `/`: landing page
+- `/login`, `/register`
 
-Protected (gated by the `(protected)` route group):
+Signed in (the `(protected)` route group):
 
-- `/dashboard` — paginated list of generated content with search, type filter, soft-delete + undo, and a detail dialog
-- `/generate` — content generation form (blog post / LinkedIn post / email / ad copy) with staged loader
-- `/improve` — analyze → rewrite chain with side-by-side diff and "what changed" rationale
-- `/brand-voices` — CRUD for style presets that inject into generation prompts
-- `/settings` — read-only account details
+- `/dashboard`: past drafts, with search, a type filter, Markdown download, and soft delete with undo
+- `/generate`: draft a blog post, LinkedIn post, email or ad copy, and pair it with an image
+- `/improve`: rewrite pasted text for a goal, shown beside the original with what changed
+- `/brand-voices`: saved style presets that prefill new drafts
+- `/settings`: the account's details, read-only
 
-## Local commands
+## Commands
 
 ```bash
 cd frontend
 pnpm install
-pnpm dev           # next dev → http://localhost:3000
-pnpm build         # production build (Next.js)
-pnpm test          # vitest run
-pnpm lint          # next lint
-pnpm format        # prettier --write .
-pnpm format:check  # prettier --check . (CI gate)
+pnpm dev           # http://localhost:3000
+pnpm test          # Vitest
+pnpm lint          # ESLint through next lint
+pnpm format:check  # Prettier
 pnpm typecheck     # tsc --noEmit
+NEXT_OUTPUT=export pnpm build   # the static export, written to out/
 ```
 
-For static-export builds (used for manual Amplify zip deploys until the GitHub→Amplify OAuth path is wired):
+The backend address is read at build time from `NEXT_PUBLIC_API_BASE_URL`, in
+`.env.local` or the shell. It defaults to `http://localhost:8000/api/v1`.
 
-```bash
-NEXT_OUTPUT=export \
-NEXT_PUBLIC_API_BASE_URL=https://<api-url>/api/v1 \
-pnpm build
-# Output lands in ./out/ — zip its contents (POSIX paths!) and PUT to Amplify.
-```
+## Auth
 
-The repo root [`README.md`](../README.md) §10 has the full deploy recipe.
+The access token lives only in memory (a Zustand store); the refresh token is an httpOnly
+cookie set by the backend, `SameSite=Lax` unless the backend is configured otherwise. On a
+401 the client in [`lib/api.ts`](./lib/api.ts) refreshes once through
+`POST /auth/refresh` and replays the request; concurrent 401s in one tab share a single
+refresh request. Two tabs refreshing at the same moment look like token reuse to the
+backend, which then signs the user out everywhere. Logging out clears every cached query.
 
-## Environment
+## API types
 
-```bash
-# .env.local
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1   # default
-```
-
-In production, Amplify environment configuration sets `NEXT_PUBLIC_API_BASE_URL` to the App Runner URL.
-
-## Auth model
-
-In-memory access token (Zustand store) + httpOnly `SameSite=None` refresh cookie set by the backend. The 401 interceptor in [`lib/api.ts`](./lib/api.ts) transparently refreshes via `POST /auth/refresh` and replays the original request once; concurrent 401s share a single inflight refresh promise. On logout, `queryClient.clear()` drops every cached query so a second user on the same browser doesn't see the first user's data.
+[`types/api.d.ts`](./types/api.d.ts) is written by hand, not generated. It types every
+route the frontend calls through the client; the Markdown download uses a plain `fetch`.
+`pnpm gen:api` would generate the file from a running backend's OpenAPI spec, but the
+committed file did not come from it, and nothing checks that it matches the backend.
 
 ## Layout
 
 ```
 frontend/
 ├── app/
-│   ├── (auth)/                # public auth routes
-│   │   ├── login/page.tsx
-│   │   └── register/page.tsx
-│   ├── (protected)/           # routes gated by useAuthGuard
-│   │   ├── dashboard/page.tsx
-│   │   ├── generate/page.tsx
-│   │   ├── improve/page.tsx
-│   │   ├── brand-voices/page.tsx
-│   │   └── settings/page.tsx
-│   ├── layout.tsx             # root layout with <Providers>
-│   ├── page.tsx               # landing
-│   └── globals.css            # Tailwind base + theme variables
+│   ├── (auth)/            # login, register
+│   ├── (protected)/       # dashboard, generate, improve, brand-voices, settings, behind useAuthGuard
+│   ├── error.tsx, global-error.tsx, not-found.tsx
+│   ├── layout.tsx, page.tsx, globals.css
 ├── components/
-│   ├── features/              # business UI (one folder-level deeper would be overkill)
-│   ├── ui/                    # shadcn primitives (button, input, label, modal)
-│   └── providers.tsx          # TanStack Query + sonner Toaster
+│   ├── features/          # the screens' building blocks
+│   ├── ui/                # shadcn/ui primitives (button, input, label, modal)
+│   ├── ui/v2/             # the newer kit; see its README for how far adoption has got
+│   └── mobile-nav.tsx, sidebar.tsx, nav-links.tsx, mock-mode-banner.tsx, …
 ├── lib/
-│   ├── api.ts                 # openapi-fetch wrapper + auth middleware
-│   ├── auth-store.ts          # Zustand: in-memory access token
-│   ├── auth/                  # hooks: useLoginMutation, useLogoutMutation, useMe, useAuthGuard
-│   ├── content/hooks.ts       # content list / detail / generate / delete / restore mutations
-│   ├── brand-voices/hooks.ts  # brand-voice CRUD mutations
-│   ├── improve/hooks.ts       # analyze→rewrite mutation
-│   ├── errors/ai-codes.ts     # friendly copy for AI-provider error codes, shared by the hooks
-│   ├── meta/hooks.ts          # GET /meta: provider mode for the mock-mode banner
-│   ├── validation/            # Zod schemas mirrored from backend
-│   └── utils.ts               # cn() helper
-├── types/api.d.ts             # OpenAPI-generated types (regenerate via `pnpm gen:api`)
-├── tests/                     # Vitest + Testing Library
-├── amplify.yml                # Amplify build spec
-├── next.config.ts             # NEXT_OUTPUT=export toggle for static deploys
-└── tailwind.config.ts
+│   ├── api.ts             # openapi-fetch client with refresh-and-retry
+│   ├── auth-store.ts      # the in-memory access token
+│   ├── auth/, content/, brand-voices/, improver/, meta/   # TanStack Query hooks
+│   ├── errors/ai-codes.ts # messages for the backend's AI error codes
+│   └── validation/        # Zod schemas mirroring the backend's limits
+├── types/api.d.ts
+├── tests/                 # Vitest and Testing Library
+└── next.config.ts         # NEXT_OUTPUT=export switches to the static export
 ```
 
-## Testing
+## Tests
 
-Unit + component tests live in [`tests/`](./tests). They mock the API hooks at the module level and exercise components in isolation. Run with `pnpm test`; CI runs the same. Playwright E2E is on the backlog ([#86](https://github.com/Eslam93/FigureMatch/issues/86)) but not wired yet.
+Component and hook tests in [`tests/`](./tests/) mock the API at the module level. There
+are no end-to-end browser tests.

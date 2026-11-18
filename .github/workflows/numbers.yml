@@ -1,0 +1,162 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
+# Writes down the numbers CI measures, because GitHub deletes Actions logs
+# after a while (see docs/decisions/0012-ci-writes-down-its-own-numbers.md).
+#
+# Every check that produces a number runs here: the backend suite with
+# coverage, the frontend and infrastructure suites, reuse lint, the audit
+# replay, and the gate's score. A failing check is recorded as failing, and
+# the job still fails at the end. .github/scripts/numbers.py turns the
+# outputs into numbers/<date>.md. On main, CI commits that file itself; on
+# any other branch it only appears in the run's summary.
+name: numbers
+
+on:
+  push:
+    branches: [main, 'claude/**']
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'infra/**'
+      - 'audit/**'
+      - 'gate/**'
+      - '.github/workflows/numbers.yml'
+      - '.github/scripts/numbers.py'
+  workflow_dispatch:
+
+concurrency:
+  # Never cancel a run on main: each one is a record.
+  group: numbers-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write # to commit numbers/ on main
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+          POSTGRES_DB: app
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      WORK: ${{ runner.temp }}/numbers
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The audit replay unpacks the May tag and reads older commits.
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: latest
+          enable-cache: true
+
+      - name: Set up Python
+        run: |
+          uv python install 3.12
+          mkdir -p "$WORK"
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Backend tests and coverage
+        id: backend
+        continue-on-error: true
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql+asyncpg://app:app@localhost:5432/app
+          REQUIRE_DB: "1"
+        run: |
+          uv sync --frozen
+          uv run alembic upgrade head
+          uv run pytest --cov=app --cov-report=json:"$WORK/backend-coverage.json" \
+            --junitxml="$WORK/backend-junit.xml" -q
+
+      - name: Frontend tests
+        id: frontend
+        continue-on-error: true
+        working-directory: ./frontend
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec vitest run --reporter=json --outputFile="$WORK/frontend.json"
+
+      - name: Infrastructure tests
+        id: infra
+        continue-on-error: true
+        working-directory: ./infra
+        run: |
+          npm ci
+          npx jest --json --outputFile="$WORK/infra.json"
+
+      - name: Licence headers
+        id: reuse
+        continue-on-error: true
+        run: uvx --from "reuse[charset-normalizer]==6.3.0" reuse lint --json > "$WORK/reuse.json"
+
+      - name: Audit replay
+        id: replay
+        continue-on-error: true
+        run: python3 audit/replay/run.py --json "$WORK/replay.json"
+
+      - name: Gate score and tests
+        id: gate
+        continue-on-error: true
+        working-directory: ./gate
+        run: |
+          uv sync --frozen
+          uv run python score.py --json "$WORK/gate-score.json"
+          uv run pytest --junitxml="$WORK/gate-junit.xml" -q
+
+      - name: Write the numbers file
+        run: python3 .github/scripts/numbers.py "$WORK" numbers | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit it to main
+        if: github.ref == 'refs/heads/main'
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add numbers/
+          if git diff --cached --quiet; then
+            echo "Nothing new to commit."
+            exit 0
+          fi
+          git commit -q -m "chore(numbers): CI's measurements of ${GITHUB_SHA::7}" -m "Run: $RUN_URL"
+          for attempt in 1 2 3; do
+            git pull -q --rebase origin main && git push -q origin HEAD:main && exit 0
+            sleep $((attempt * 5))
+          done
+          echo "::error::Could not push the numbers file to main."
+          exit 1
+
+      - name: Fail if any check failed
+        if: >-
+          steps.backend.outcome != 'success' || steps.frontend.outcome != 'success' ||
+          steps.infra.outcome != 'success' || steps.reuse.outcome != 'success' ||
+          steps.replay.outcome != 'success' || steps.gate.outcome != 'success'
+        run: |
+          echo "::error::A check failed: backend=${{ steps.backend.outcome }}, frontend=${{ steps.frontend.outcome }}, infra=${{ steps.infra.outcome }}, reuse=${{ steps.reuse.outcome }}, replay=${{ steps.replay.outcome }}, gate=${{ steps.gate.outcome }}"
+          exit 1

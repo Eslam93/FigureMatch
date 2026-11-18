@@ -12,7 +12,7 @@ It started as a two-day hiring take-home in May 2026: an AI content-marketing st
 
 - **The studio as built in May 2026.** Commit `52dc30b` (tag `take-home-2026-05-16`) is where that work ended. It ran on AWS for a demo that month. The stack was torn down in June 2026 and nothing is deployed today. It runs on your machine, against OpenAI or in mock mode with no key.
 - **A November 2026 audit.** Read again six months later, the code had defects that its passing test suite did not catch. A stolen refresh token stayed valid because its revocation was rolled back. Text costs were recorded 5 to 7.5 times too low. OpenAI had shut down the default image model. And 422 responses echoed back a rejected password. These were fixed in [#154](https://github.com/Eslam93/FigureMatch/pull/154) and [#155](https://github.com/Eslam93/FigureMatch/pull/155). [`audit/`](./audit/) replays them: four probes that fail on the May code and pass on today's, and a rerun of the May suite showing that it executed every faulty line.
-- **The figure checker is not built.** The name is for what may come next: a checker that confirms every figure in an Arabic version matches its English original. Whether it gets built depends on a cheap measurement, set up in [`gate/`](./gate/) before any checker code exists.
+- **The figure checker is not built.** The name is for what may come next: a checker that confirms every figure in an Arabic version matches its English original. Whether it gets built depends on a cheap measurement in [`gate/`](./gate/). Its labelled cases and its matcher exist; its threshold is not set and no real page has been scanned, so nothing is known yet.
 
 ## What the studio does
 
@@ -99,8 +99,10 @@ All paths are under `/api/v1`.
 ```
 FigureMatch/
 ├── README.md           # this file
-├── ARCHITECTURE.md     # decisions and trade-offs
+├── ARCHITECTURE.md     # the design: what runs today, and the May deployment
 ├── DEVLOG.md           # build journal, May 2026
+├── docs/decisions/     # one record per decision since May, each dated
+├── numbers/            # test counts and coverage, committed by CI
 ├── docker-compose.yml  # Postgres and the backend for local work
 ├── .env.example        # environment template
 ├── .github/workflows/  # CI
@@ -116,7 +118,7 @@ FigureMatch/
 | Variable | Default | Purpose |
 |---|---|---|
 | `ENVIRONMENT` | `local` | `local`, `dev`, `staging` or `production`. Outside `local`, weak secrets and missing keys stop the backend from booting. |
-| `AI_PROVIDER_MODE` | `openai` | `openai` or `mock`. `bedrock` is refused at boot: its providers are stubs. |
+| `AI_PROVIDER_MODE` | `openai` | `openai` or `mock`. `bedrock` is refused at boot outside `local`; in `local` the first model call fails, because its providers are stubs. |
 | `ALLOW_MOCK_PROVIDER` | `false` | Allows `mock` outside `local`. |
 | `OPENAI_API_KEY` | none | Required in `openai` mode outside `local`. |
 | `OPENAI_TEXT_MODEL` | `gpt-5.4-mini-2026-03-17` | Text model; must be in the catalog outside `local`. |
@@ -182,7 +184,11 @@ uvx --from "reuse[charset-normalizer]==6.3.0" reuse lint
 | [`infra-ci`](./.github/workflows/infra-ci.yml) | `infra/**` changes | tsc, Jest with a snapshot per stack, `cdk synth` with placeholder context |
 | [`model-lifecycle`](./.github/workflows/model-lifecycle.yml) | Mondays 06:17 UTC, manual, and PRs touching the catalog | Fails if a configured model is unknown, unpriced, shut down, shutting down within 30 days, or listed on OpenAI's deprecations page |
 | [`audit-replay`](./.github/workflows/audit-replay.yml) | `audit/**` and `backend/**` changes, and manual | The four audit probes fail on the May tag and pass on the commit being built; the May suite still executes every faulty line |
+| [`gate`](./.github/workflows/gate.yml) | `gate/**` changes | ruff, mypy, the matcher's tests, and that `gate/SCORE.md` is what the matcher produces |
+| [`numbers`](./.github/workflows/numbers.yml) | pushes to `main` and working branches that change code, and manual | Runs every check that produces a number and writes them to a dated file. On `main`, CI commits it under [`numbers/`](./numbers/) |
 | [`reuse`](./.github/workflows/reuse.yml) | pushes to `main` and working branches, and every PR | Every file states its copyright and licence |
+
+GitHub deletes Actions logs after a while: the log of the last May-era backend run, on 2 June 2026, is already gone. So the numbers CI measures on `main` are committed by CI itself, as dated files in [`numbers/`](./numbers/), and a reader does not have to take a figure from this README on trust.
 
 ## Deployment
 
@@ -203,7 +209,7 @@ The stack was deployed by hand from [`infra/DEPLOY.md`](./infra/DEPLOY.md) in Ma
 
 ## Development log
 
-[`DEVLOG.md`](./DEVLOG.md) is the build journal from 14 to 16 May 2026, up to [#147](https://github.com/Eslam93/FigureMatch/pull/147). Later changes are described in their pull requests.
+[`DEVLOG.md`](./DEVLOG.md) is the build journal from 14 to 16 May 2026, up to [#147](https://github.com/Eslam93/FigureMatch/pull/147), left as written. Later changes are described in their pull requests, and each decision since May has a dated record in [`docs/decisions/`](./docs/decisions/).
 
 ## Licence
 

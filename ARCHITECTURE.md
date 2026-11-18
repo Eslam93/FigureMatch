@@ -1,88 +1,138 @@
-# Architecture decisions
+# Architecture
 
-One-page summary of the load-bearing choices and the trade-offs behind them.
+The choices behind the studio, and the trade-offs that came with them. Most were made in
+May 2026, when the studio was built and briefly hosted on AWS; the sections below say
+which still hold. The changes made in November 2026 each have a record of their own in
+[`docs/decisions/`](./docs/decisions/).
 
-> **Current state caveat:** the stack table below describes the *target* topology. The hardening pass before the deploy batch deferred a few rows explicitly:
->
-> - **Redis** is not wired in yet: the backend has no Redis settings and runs with the in-memory fallback. The ElastiCache cluster was removed from `DataStack` until the VPC-connector + refresh-token-blocklist work in Phase 11; otherwise it was provisioned and billed but unreachable from App Runner.
-> - **CloudFront for images** is deferred to the deploy batch. `IImageStorage` is the swap seam; `LocalImageStorage` runs today against the App Runner local disk, served via FastAPI's `/local-images` static mount.
-> - **The S3 image-storage adapter** also lands with the deploy batch. The backend now persists only the storage `key`; the public URL is computed at response-projection time from `IMAGES_CDN_BASE_URL`, so the S3 cutover is a config + one-class change, not a row-level data migration.
+## What runs today
 
-## Stack snapshot
+Nothing is deployed. The stack described under [The May deployment](#the-may-deployment)
+was taken down in June 2026. The studio runs on one machine:
 
-| Concern | Choice | Alternatives rejected |
+- The backend (FastAPI) and Postgres start with `docker compose`; the frontend is a
+  Next.js app served by `pnpm dev`, or built as a static export.
+- Text and images come from OpenAI, or from canned mock output with no key.
+- Generated images are written to the backend's local disk and served from
+  `/local-images`. `IImageStorage` is the seam an S3 adapter would plug into; no S3
+  adapter exists.
+- Rate limits are counters in each backend process's memory. There is no Redis.
+
+## Stack
+
+| Concern | Choice | Alternatives the May plan rejected |
 |---|---|---|
-| Text generation | OpenAI `gpt-5.4-mini-2026-03-17` | AWS Bedrock Claude Sonnet 4.5 (Anthropic use-case form is a multi-hour gate); Anthropic direct (no image gen, would need a second provider) |
-| Image generation | OpenAI `gpt-image-2.5-flare` | AWS Bedrock Nova Canvas (`LEGACY`, EOL 2026-09-30); Replicate / fal.ai (additional account, additional billing surface) |
-| Backend host | AWS App Runner (no VPC connector) | Fargate (more CDK wiring); Lambda (cold start + 15-min cap); Vercel (mismatched runtime for async Python + SQLAlchemy 2.0) |
-| Frontend host | AWS Amplify Hosting | Vercel (great DX but adds a second cloud and a separate DNS story); App Runner static (no Next.js SSR/middleware) |
-| Database | RDS Postgres `db.t4g.micro`, public subnet, SG open on 5432 (gated by `rds.force_ssl=1` + strong auto-generated password — see decision #3 below) | RDS in private subnet (requires VPC connector + complications); Aurora (overkill at this scale); Supabase (third cloud) |
-| Auth | Custom JWT + httpOnly refresh cookie + rotation | Cognito (more moving parts, less control over rotation lifecycle); Auth0 (cost + vendor lock-in) |
-| Streaming | Non-streaming for content generation | SSE everywhere (structured JSON does not stream cleanly; a partial parse is broken UX) |
+| Text generation | OpenAI `gpt-5.4-mini-2026-03-17` | AWS Bedrock with Claude (an access form per AWS account, and a cross-region inference profile); Anthropic direct (no image model) |
+| Image generation | OpenAI `gpt-image-2.5-flare`, since November. In May it was `gpt-image-1`, which OpenAI shut down on 2026-10-23 | AWS Bedrock Nova Canvas (listed by AWS as legacy in May); Replicate or fal.ai (another account and bill) |
+| Auth | Custom JWT, refresh token in an httpOnly cookie, single-use rotation | Cognito (more moving parts, less control over rotation); Auth0 (cost) |
+| Content generation | Not streamed | Server-sent events (structured JSON does not stream cleanly; a partial parse is broken output) |
+| Database | PostgreSQL 16 | |
 
-## Load-bearing decisions
+## Decisions that still hold
 
-### 1. OpenAI direct over AWS Bedrock
-Bedrock's Claude Sonnet 4.5 requires submitting an Anthropic use-case form per AWS account, and the bare model ID does not support `ON_DEMAND` inference (you must use the `us.` cross-region inference profile). Nova Canvas is `LEGACY` with EOL **2026-09-30**. OpenAI bypasses both: one prepaid key covers text + image, smoke calls verify in seconds. Provider abstractions in `app/providers/llm` and `app/providers/image` keep Bedrock as a one-class swap if requirements ever change.
+### 1. OpenAI direct, behind two interfaces
 
-### 2. No VPC connector on App Runner
-With a VPC connector, App Runner loses public internet egress unless we add NAT Gateway (~$32/mo) or VPC endpoints for every AWS service we call (S3, Secrets Manager) plus the public OpenAI API. The cleaner trade is to keep App Runner public and rely on TLS + a strong DB password for RDS exposure. The original plan was to allowlist App Runner's egress prefix list at the SG layer; AWS doesn't publish a stable per-service egress prefix list for the no-VPC-connector mode, so SG narrowing isn't available. Reversible when we adopt a VPC connector (Phase 11) or move to RDS Proxy.
+In May, Bedrock needed a per-account access form for Claude and a cross-region inference
+profile, and its image model was listed as legacy. One OpenAI key covered text and
+images. The backend calls models only through `ILLMProvider` and `IImageProvider`, with
+an OpenAI and a mock implementation of each. The Bedrock classes beside them are stubs
+that raise on construction, and the backend refuses to boot in `bedrock` mode: no
+Bedrock call has ever been written. Adding a provider means implementing the two
+interfaces, not swapping one class.
 
-### 3. Public RDS, SG open on 5432, gated by TLS + strong password
-Pairs with #2. The exposure surface is **not** bounded by the SG (which permits `0.0.0.0/0:5432`) — see #2 for why we couldn't narrow it. The gates are:
+### 2. Custom JWT, not Cognito
 
-1. The Postgres parameter group sets `rds.force_ssl=1`, so the server refuses plaintext connections.
-2. The backend's DSN includes `?ssl=require`, so the client refuses to fall back to plaintext either.
-3. The RDS password is auto-generated by CDK and lives only in Secrets Manager — never on disk, never in the repo. (Rotation lives at the manual-runbook level for now; `addRotationSingleUser` lands with the Phase 11 hardening pass.)
-4. The application layer adds JWT auth on top of all of that.
+Single-use refresh-token rotation with reuse detection is easier to express in
+application code than in Cognito's lifecycle hooks. Presenting a spent refresh token
+revokes every refresh token the user holds. Until November that revocation was rolled
+back by the request's own error handling, so it never took effect; see
+[`audit/`](./audit/) and [decision 0002](./docs/decisions/0002-commit-reuse-revocation-before-the-401.md).
+There is no token blocklist and no Redis behind any of this.
 
-Acceptable for the current scope of a demo backend behind a custom auth layer with no regulated data. The call would be different for a long-lived multi-tenant SaaS — VPC connector + RDS Proxy + IAM auth + rotation is the production-grade configuration.
+### 3. Three stages for structured output
 
-### 4. Custom JWT, not Cognito
-Two reasons: (a) refresh-token rotation + Redis blocklist is easier to express in app code than in Cognito's lifecycle hooks; (b) the IAM story stays simple — App Runner role gets S3 + Secrets Manager + CloudWatch, nothing else. Cognito would add User Pools, Identity Pools, and three more IAM scopes for a feature we control well in ~200 lines of Python.
+1. The model is asked for JSON under a strict schema (`response_format: json_schema,
+   strict: true`) and the reply is validated with Pydantic.
+2. If validation fails, one corrective retry runs under the same strict schema, with the
+   reply shown back and each failing field named.
+3. If that fails too, the raw reply is stored as `rendered_text` with
+   `result_parse_status = failed`, and the frontend shows it with a banner.
 
-### 5. Three-stage JSON parse fallback
-Live demos must never surface model-misbehavior errors. Stage 1 uses OpenAI structured outputs (`response_format: json_schema, strict: true`). Stage 2 retries with a corrective system message. Stage 3 stores the raw output as `rendered_text`, sets `result_parse_status = failed`, and shows a small non-blocking banner. The user always gets usable content; structured logs flag the warning for follow-up.
+A first reply cut off at the length limit or refused by the content filter does not
+reach stage 2: the request fails with a typed error (`AI_OUTPUT_TRUNCATED`,
+`AI_CONTENT_REJECTED`). So the user usually, not always, gets something to work with.
+Until November, stage 2 dropped the schema and told the model its JSON was invalid,
+which was rarely the problem; see
+[decision 0005](./docs/decisions/0005-corrective-retry-keeps-the-strict-schema.md).
 
-### 6. Non-streaming content generation, staged loading UI
-Structured JSON output doesn't stream cleanly. A partial JSON parse is broken UX. The endpoint stays non-streaming; the UI cycles "Analyzing topic..." → "Drafting..." → "Polishing..." across the 3–8s latency. The improver also stays non-streaming — every line of optional complexity is a future bug.
+### 4. No streaming, a staged loader instead
 
-## AWS cost estimate
+A partial JSON parse is broken output, so generation is not streamed. The frontend
+cycles "Analyzing topic…", "Drafting…", "Polishing…" while the request runs. The
+improver is not streamed either.
 
-Steady-state monthly figures for the dev stack as currently deployed (us-east-1, single environment, min=1 always-on App Runner instance). Numbers from the AWS pricing pages; assumes ~10–50 demo sessions/week and no production traffic. Updates as real CloudWatch billing accumulates.
+## The May deployment
 
-| Service | Sizing | Monthly cost (USD) |
+From 15 May to June 2026 the studio ran on AWS: the backend on App Runner, the frontend
+as a static export on Amplify, Postgres on RDS. [`infra/`](./infra/) holds the CDK app
+that described it, and [`infra/DEPLOY.md`](./infra/DEPLOY.md) the runbook it was
+deployed with by hand. Both are kept as a record; neither has been run since, and the
+runbook is known to be incomplete. Two of its choices are worth stating plainly, because
+they were acceptable for a short demo and would not be for anything else.
+
+### App Runner without a VPC connector
+
+With a VPC connector, App Runner loses public egress unless a NAT gateway (about $32 a
+month) or a VPC endpoint per AWS service is added, and the backend must reach OpenAI.
+App Runner stayed public instead. AWS publishes no stable egress range for App Runner in
+that mode, so the database's security group could not be narrowed to it.
+
+### A public RDS endpoint
+
+As a consequence, the database's security group allowed `0.0.0.0/0` on port 5432. What
+protected it was TLS required on both sides (`rds.force_ssl=1`, and `?ssl=require` in
+the DSN) and a strong password generated by CDK and kept in Secrets Manager, with
+password rotation never set up. That is a demo's trade-off. A service with users would
+use a VPC connector, RDS Proxy, IAM authentication and rotation.
+
+### What it was estimated to cost
+
+Estimated in May from the AWS pricing pages, for one environment with one App Runner
+instance always on. It was never compared with a bill in this repository, and today's
+AWS cost is nil because nothing is deployed.
+
+| Service | Sizing | Estimated monthly cost (USD) |
 |---|---|---|
-| App Runner | 1 vCPU / 2 GB, autoscale min 1 / max 3, concurrency 80 | ~$50 (one instance always-on; CPU/memory bumped after the hardening pass — `gpt-image-1` responses were OOM-adjacent at 0.25 vCPU / 0.5 GB) |
-| RDS Postgres | `db.t4g.micro`, 20 GB gp3, public endpoint, 0-day backup retention (dev) | ~$15 (~$13 instance + ~$2 storage) |
-| S3 (images bucket) | Empty until the S3 adapter ships (Phase 5); object-storage line stays near $0 | ~$0 |
-| Amplify Hosting | Static export, 1–3 zip deploys/day during active dev | <$1 |
-| Secrets Manager | 3 secrets (RDS, JWT, OpenAI) at $0.40/secret/mo | ~$1.20 |
-| CloudWatch Logs | App Runner + Fargate task logs, 14-day retention, ~50 MB/day | ~$2 |
-| ECR | Backend image ~250 MB, lifecycle policy keeps last 10 tags | <$1 |
-| NAT Gateway | **Not used** — App Runner runs with `egressType: DEFAULT` (public egress) | $0 |
-| ElastiCache | **Deferred to Phase 11** | $0 |
-| CloudFront | **Deferred to Phase 5** (images served via App Runner's `/local-images` until then) | $0 |
-| **Total AWS** | | **~$70/month** |
-| **OpenAI** (separate budget) | `gpt-5.4-mini`: $0.75 input / $0.075 cached input / $4.50 output per 1M tokens; `gpt-image-2.5-flare`: $5.00 text input / $8.00 image input / $30.00 image output per 1M tokens | Usage-based (see note) |
+| App Runner | 1 vCPU, 2 GB, autoscaling from 1 to 3 instances | about $50 |
+| RDS Postgres | `db.t4g.micro`, 20 GB gp3, public endpoint, no backups kept | about $15 |
+| S3 | A bucket created and never written to | about $0 |
+| Amplify Hosting | Static export, a few manual deploys a day | under $1 |
+| Secrets Manager | 3 secrets | about $1.20 |
+| CloudWatch Logs | 14-day retention | about $2 |
+| ECR | One image repository, last 10 tags kept | under $1 |
+| **Total** | | **about $70** |
 
-**OpenAI note:** the earlier per-content-piece (~$0.005) and per-week (~$3–8) OpenAI estimates were calculated from an incorrect `gpt-5.4-mini` price table, so they were removed rather than re-estimated. GPT Image models have no fixed per-image price either: they bill per token. Each call's cost is now computed from the token counts the API reports, at the dated rates in [`backend/app/core/model_catalog.py`](./backend/app/core/model_catalog.py) (verified 2026-11-06).
+OpenAI is billed per token at the dated rates in
+[`backend/app/core/model_catalog.py`](./backend/app/core/model_catalog.py). Every call's
+cost is computed from the token counts the API reports. The per-piece estimates the May
+documents gave were computed from a wrong price table and were removed, not re-estimated.
 
-The two largest dev-stack line items (App Runner at always-on, RDS at `db.t4g.micro`) are both intentional trade-offs. App Runner's min=1 keeps cold-start latency off the demo path; scale-to-zero would save ~$45/mo but make the first request after idle period unusable (~10s cold boot). The RDS public endpoint is gated by `rds.force_ssl=1` + a strong auto-generated password (see decision #3 above); private subnet + RDS Proxy is the production-grade configuration and adds ~$15–25/mo in NAT + Proxy charges.
+## Not built
 
-## What's next
+These were in the May plan and do not exist. Some still have open issues from that plan.
 
-Tracked on the [GitHub issue board](https://github.com/Eslam93/FigureMatch/issues) under labels `priority:critical` and `priority:high`. Ordered by impact:
-
-1. **S3 image storage adapter** ([#49](https://github.com/Eslam93/FigureMatch/issues/49)) — swaps `LocalImageStorage` for `S3ImageStorage` behind the same `IImageStorage` protocol. Removes the cross-container caveat where Fargate-seeded images don't reach App Runner. Backend-only change; the swap is a one-class edit and a config flag.
-2. **CloudFront in front of S3** — public-read distribution with signed-URL option for protected images. Drops App Runner egress costs and adds CDN caching.
-3. **OIDC role for `deploy.yml`** — replaces the current manual `docker push` + `aws amplify create-deployment` flow with the existing workflow once the IAM trust relationship is wired.
-4. **Phase 11 hardening** ([#88](https://github.com/Eslam93/FigureMatch/issues/88), [#89](https://github.com/Eslam93/FigureMatch/issues/89), [#90](https://github.com/Eslam93/FigureMatch/issues/90)) — Redis blocklist for refresh tokens, idempotency middleware, per-endpoint rate limit tuning. All require the VPC connector that's currently deferred.
-5. **Exports** ([#73](https://github.com/Eslam93/FigureMatch/issues/73), [#74](https://github.com/Eslam93/FigureMatch/issues/74), [#75](https://github.com/Eslam93/FigureMatch/issues/75)) — `GET /content/:id/export?format=pdf|docx|markdown`. Reuses the same `rendered_text` field the dashboard previews.
-6. **Frontend polish** ([#79](https://github.com/Eslam93/FigureMatch/issues/79)–[#87](https://github.com/Eslam93/FigureMatch/issues/87)) — section-level error boundaries, empty states, mobile responsive audit, accessibility pass, dark mode polish, loading skeletons.
-
-Considered but explicitly deferred to keep the surface area honest:
-
-- **Password reset / email verification** — would need an SES domain identity and a transactional template; out of scope for the demo deliverable.
-- **AWS Bedrock Nova Canvas migration plan** — Nova Canvas is `LEGACY` with EOL **2026-09-30**. OpenAI's GPT Image models (default `gpt-image-2.5-flare`) are the only image-gen path today; if Bedrock becomes cheaper or required, the `IImageProvider` interface accepts a one-class swap (see `app/providers/image/bedrock.py` stub).
-- **Multi-tenant** — current auth is per-user. Org/workspace scoping would touch every owner-filter in the repositories; not on the roadmap.
+- An S3 image storage adapter and CloudFront in front of it
+  ([#49](https://github.com/Eslam93/FigureMatch/issues/49)).
+- A deploy pipeline. `deploy.yml` ran once, on 15 May 2026, and failed: its OIDC role was
+  never configured. Every deploy was done by hand.
+- A refresh-token blocklist, idempotency keys, per-endpoint and per-account rate limits,
+  all of which the plan put on Redis
+  ([#88](https://github.com/Eslam93/FigureMatch/issues/88),
+  [#89](https://github.com/Eslam93/FigureMatch/issues/89),
+  [#90](https://github.com/Eslam93/FigureMatch/issues/90)).
+- PDF and DOCX export ([#73](https://github.com/Eslam93/FigureMatch/issues/73),
+  [#74](https://github.com/Eslam93/FigureMatch/issues/74)). Markdown export exists.
+- Usage accounting in a table of its own. Cost and tokens are recorded on each content
+  piece, improvement and image.
+- Password reset, email verification, and anything beyond one user per account.
+- End-to-end browser tests.

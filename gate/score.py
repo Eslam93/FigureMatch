@@ -8,6 +8,7 @@
     uv run python score.py --write    also write it to SCORE.md
     uv run python score.py --check    exit 1 unless SCORE.md is this run's score
     uv run python score.py --show     print the figures read in every case
+    uv run python score.py --json F   write the totals to F as JSON, for CI
 
 Every case lists the check types it scores, each labelled `match` or
 `mismatch`. The matcher's verdict for a type is `mismatch` if it found a
@@ -220,13 +221,41 @@ def render(scored: list[Scored], unlabelled: list[tuple[str, str]]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def totals(scored: list[Scored]) -> dict[str, object]:
+    """The score as numbers, overall and per check type, for CI's record."""
+
+    def counts(rows: list[Scored]) -> dict[str, int]:
+        return {
+            "pairs": len(rows),
+            "labelled_mismatch": sum(r.label == "mismatch" for r in rows),
+            "caught": _count(rows, "caught"),
+            "false_green": _count(rows, "false green"),
+            "labelled_match": sum(r.label == "match" for r in rows),
+            "passed": _count(rows, "passed"),
+            "false_red": _count(rows, "false red"),
+            "not_read": _count(rows, "not read"),
+        }
+
+    return {
+        "cases": len({s.case for s in scored}),
+        **counts(scored),
+        "by_type": {kind: counts([s for s in scored if s.kind == kind]) for kind in KINDS},
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Score the parity matcher on the labelled cases.")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--write", action="store_true", help="write the score to SCORE.md")
     group.add_argument("--check", action="store_true", help="fail unless SCORE.md is up to date")
     group.add_argument("--show", action="store_true", help="print what was read in each case")
+    group.add_argument("--json", type=Path, metavar="PATH", help="write the totals as JSON")
     args = parser.parse_args(argv)
+
+    if args.json:
+        scored, _ = run()
+        args.json.write_text(json.dumps(totals(scored), indent=2) + "\n", encoding="utf-8")
+        return 0
 
     if args.show:
         print(show(), end="")

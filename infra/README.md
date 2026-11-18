@@ -1,96 +1,42 @@
-# FigureMatch Infrastructure (AWS CDK, TypeScript)
+# Infrastructure (AWS CDK, TypeScript)
 
-This directory holds the AWS CDK app that defines every cloud resource FigureMatch uses: the VPC, RDS Postgres, ElastiCache Redis (provisioned but not yet used — see [DEVLOG.md](../DEVLOG.md)), App Runner backend service, ECR repository, Amplify-hosted frontend, and CloudWatch alarm scaffolding (CloudFront-for-images is deferred to Phase 5; see [P2.5 PR](https://github.com/Eslam93/FigureMatch/pull/124) for the circular-dependency reasoning).
+The CDK app that described the studio's AWS deployment in May 2026: five stacks for one
+environment, `dev`. It was deployed by hand from [`DEPLOY.md`](./DEPLOY.md) on 15 May
+2026 and taken down in June 2026. Nothing is deployed from it today, and it has not been
+deployed since.
 
-## Status
+CI still builds it, tests it and synthesises it on every change, so it stays a valid CDK
+app. It is kept as a record of that deployment, not as a ready path to a new one.
 
-| Stack | PR | Status |
-|---|---|---|
-| `figurematch-dev-network` | P2.2 | ✅ shipped |
-| `figurematch-dev-data` | P2.3 | ✅ shipped |
-| `figurematch-dev-compute` | P2.4 | ✅ shipped |
-| `figurematch-dev-edge` | P2.5 | ✅ shipped (Amplify only — CloudFront deferred to Phase 5) |
-| `figurematch-dev-observability` | P2.6 | ✅ shipped (placeholder; CloudWatch alarm lands in P11.6) |
+## Stacks
 
-All five stacks `cdk synth --all -c env=dev` cleanly on every PR via `.github/workflows/infra-ci.yml`. Actual `cdk deploy` is a manual step — see [`DEPLOY.md`](./DEPLOY.md).
+| Stack | What it defines |
+|---|---|
+| `figurematch-dev-network` | A VPC with public subnets and no NAT gateway, and the database's security group |
+| `figurematch-dev-data` | RDS Postgres (`db.t4g.micro`, public endpoint, TLS required), an S3 bucket nothing writes to, and Secrets Manager entries |
+| `figurematch-dev-compute` | An ECR repository, the App Runner service with autoscaling from 1 to 3 instances, and a Fargate task definition for migrations |
+| `figurematch-dev-edge` | An Amplify app for the static frontend, with no Git connection |
+| `figurematch-dev-observability` | Nothing: a placeholder for alarms that were never written |
 
-## Layout
+There is no Redis, no CloudFront distribution and no `prod` environment. A Redis security
+group is still defined in the network stack, although no cluster exists.
 
-```
-infra/
-├── bin/
-│   └── figurematch.ts              # CDK app entry; reads --context env=dev
-├── lib/
-│   ├── config.ts                # per-env config loader
-│   ├── network-stack.ts         # → P2.2
-│   ├── data-stack.ts            # → P2.3
-│   ├── compute-stack.ts         # → P2.4
-│   ├── edge-stack.ts            # → P2.5
-│   └── observability-stack.ts   # → P2.6
-├── test/
-│   ├── config.test.ts           # current
-│   ├── network-stack.test.ts    # → P2.2
-│   └── ...
-├── cdk.json
-├── package.json
-├── tsconfig.json
-├── jest.config.js
-└── README.md
-```
-
-## Local commands
+## Commands
 
 ```bash
-# Install deps
 npm ci
-
-# Build TS → JS (CDK's ts-node also handles this on-the-fly)
-npm run build
-
-# Run unit + snapshot tests
-npm test
-
-# Synthesize CloudFormation templates (no AWS account needed)
-npm run synth          # cdk synth --all -c env=dev
-npm run synth:diff     # cdk diff --all -c env=dev (requires deployed stacks)
+npm run build    # tsc
+npm test         # Jest, with a snapshot of each stack's template
+npx cdk synth --all -c env=dev \
+  -c cors_origins=https://ci.example.com \
+  -c images_cdn_base_url=https://ci.example.com/local-images
 ```
 
-## Deploy
+`synth` needs `cors_origins` and `images_cdn_base_url` in the context; CI passes
+placeholders. It needs no AWS account.
 
-See `DEPLOY.md` (added in P2.7) for the manual runbook. Short version:
+## Before deploying anything
 
-```bash
-aws configure                                # admin creds for target account
-npx cdk bootstrap aws://ACCOUNT/us-east-1    # one-time per account/region
-npx cdk deploy --all -c env=dev
-```
-
-## Environments
-
-Only `dev` is wired up in Phase 2. The `EnvConfig` shape in `lib/config.ts` already accommodates `staging` and `prod`; adding those is a single-PR follow-up (copy the dev entry, tighten instance sizes + retention + dev IP allowlist).
-
-Switch environments at deploy time:
-
-```bash
-npx cdk deploy --all -c env=dev
-# Later, once prod is wired:
-npx cdk deploy --all -c env=prod
-```
-
-Stack names are namespaced by env: `figurematch-dev-network`, `figurematch-prod-network`, etc. — multiple envs can coexist in one AWS account.
-
-## CI
-
-`.github/workflows/infra-ci.yml` runs on every PR that touches `infra/**`:
-
-1. `npm ci`
-2. `npm test` (jest snapshot + unit tests)
-3. `npx cdk synth --all -c env=dev`
-
-No AWS credentials are needed — `cdk synth` is purely local code generation. The real `cdk deploy` requires the user's AWS credentials and happens manually via `DEPLOY.md`.
-
-## References
-
-- Architecture rationale: [`../ARCHITECTURE.md`](../ARCHITECTURE.md)
-- Phase 2 task spec: `../.private/PHASES.md` §P2.1–P2.10 (gitignored)
-- Brief §11 (Infrastructure): `../.private/PROJECT_BRIEF.md` (gitignored)
+Read the status note at the top of [`DEPLOY.md`](./DEPLOY.md). The runbook relies on a
+security group that was created by hand and that no stack defines, and several of its
+commands leave out context that synth now requires.
