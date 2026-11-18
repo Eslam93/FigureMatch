@@ -38,8 +38,8 @@ class LLMResult:
 
     input_tokens: int
     output_tokens: int
-    """Token counts as reported by the provider. Used for cost
-    accounting in `usage_events`."""
+    """Token counts as reported by the provider, recorded with the
+    content piece or improvement the call produced."""
 
     cost_usd: float
     """Computed cost for this call in USD. Provider-specific pricing

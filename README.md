@@ -118,7 +118,7 @@ FigureMatch/
 | Variable | Default | Purpose |
 |---|---|---|
 | `ENVIRONMENT` | `local` | `local`, `dev`, `staging` or `production`. Outside `local`, weak secrets and missing keys stop the backend from booting. |
-| `AI_PROVIDER_MODE` | `openai` | `openai` or `mock`. `bedrock` is refused at boot outside `local`; in `local` the first model call fails, because its providers are stubs. |
+| `AI_PROVIDER_MODE` | `openai` | `openai` or `mock`. Any other value stops the backend at boot. |
 | `ALLOW_MOCK_PROVIDER` | `false` | Allows `mock` outside `local`. |
 | `OPENAI_API_KEY` | none | Required in `openai` mode outside `local`. |
 | `OPENAI_TEXT_MODEL` | `gpt-5.4-mini-2026-03-17` | Text model; must be in the catalog outside `local`. |
@@ -154,6 +154,7 @@ uv run ruff check .
 uv run ruff format --check .
 uv run mypy app
 uv run alembic upgrade head
+uv run alembic check                                        # models and migrations agree
 REQUIRE_DB=1 uv run pytest --cov=app --cov-fail-under=80   # REQUIRE_DB=1 fails, not skips, without Postgres
 uv run python -c "import json; from app.main import app; json.dump(app.openapi(), open('openapi-tmp.json', 'w'))"
 npx openapi-typescript@7.4 openapi-tmp.json -o /dev/null && rm openapi-tmp.json
@@ -179,7 +180,7 @@ uvx --from "reuse[charset-normalizer]==6.3.0" reuse lint
 
 | Workflow | Runs on | Checks |
 |---|---|---|
-| [`backend-ci`](./.github/workflows/backend-ci.yml) | `backend/**` changes | ruff lint and format, mypy strict, migrations, pytest against Postgres with an 80% coverage gate, OpenAPI spec through openapi-typescript |
+| [`backend-ci`](./.github/workflows/backend-ci.yml) | `backend/**` changes | ruff lint and format, mypy strict, migrations and a check that they match the models, pytest against Postgres with an 80% coverage gate, OpenAPI spec through openapi-typescript |
 | [`frontend-ci`](./.github/workflows/frontend-ci.yml) | `frontend/**` changes | ESLint, Prettier, tsc, Vitest, the static export build and its 404 page |
 | [`infra-ci`](./.github/workflows/infra-ci.yml) | `infra/**` changes | tsc, Jest with a snapshot per stack, `cdk synth` with placeholder context |
 | [`model-lifecycle`](./.github/workflows/model-lifecycle.yml) | Mondays 06:17 UTC, manual, and PRs touching the catalog | Fails if a configured model is unknown, unpriced, shut down, shutting down within 30 days, or listed on OpenAI's deprecations page |
@@ -196,14 +197,13 @@ The CDK app in [`infra/`](./infra/) describes the May 2026 deployment in five st
 
 The stack was deployed by hand from [`infra/DEPLOY.md`](./infra/DEPLOY.md) in May 2026 and destroyed in June 2026. The runbook needs work before anyone reuses it. It relies on an egress security group that was created by hand and that no stack defines. Several of its commands also leave out the context synth now requires.
 
-[`deploy.yml`](./.github/workflows/deploy.yml) has never completed a run. Its OIDC role was never configured. It deploys only the backend, and its migration task passes no security group.
+There is no deploy pipeline. A `deploy.yml` workflow ran once, on 15 May 2026, and failed because its OIDC role was never configured; every deploy was done by hand, and the workflow was removed in November 2026 ([decision 0013](./docs/decisions/0013-cut-what-only-pretended-to-work.md)).
 
 ## Known limits
 
 - Rate limits are per process and per minute, so a fleet of instances multiplies them, and a restart resets them.
 - Generated images live on the backend's local disk. They are lost on redeploy and not shared between instances.
 - There is no password reset and no email verification.
-- The Bedrock providers are stubs that raise on construction.
 - One image generation holds a database row lock for the whole prompt, image and upload sequence. A second request for the same piece fails fast with `409 IMAGE_GENERATION_IN_PROGRESS`.
 - Two browser tabs refreshing at the same moment look like token reuse, which signs the user out everywhere.
 

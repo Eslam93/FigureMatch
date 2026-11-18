@@ -71,6 +71,8 @@ jobs:
             uv run ruff format --check .
             uv run mypy app
             uv run alembic upgrade head
+            # Fails if the models and the migrations have drifted apart.
+            uv run alembic check
             uv run pytest --cov=app --cov-report=term-missing --cov-fail-under=80
           else
             echo "no pyproject.toml yet — skipping lint/typecheck/test"

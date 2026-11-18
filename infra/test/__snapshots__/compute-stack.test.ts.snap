@@ -614,10 +614,6 @@ exports[`ComputeStack (dev) matches snapshot 1`] = `
                   "Value": "openai",
                 },
                 {
-                  "Name": "USE_REDIS",
-                  "Value": "false",
-                },
-                {
                   "Name": "LOG_LEVEL",
                   "Value": "INFO",
                 },

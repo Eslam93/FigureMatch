@@ -15,11 +15,9 @@ from __future__ import annotations
 from app.core.config import AIProviderMode, get_settings
 from app.providers.errors import ProviderConfigError
 from app.providers.image.base import IImageProvider
-from app.providers.image.bedrock import BedrockNovaCanvasProvider
 from app.providers.image.mock import MockImageProvider
 from app.providers.image.openai_provider import OpenAIImageProvider
 from app.providers.llm.base import ILLMProvider
-from app.providers.llm.bedrock import BedrockClaudeProvider
 from app.providers.llm.mock import MockLLMProvider
 from app.providers.llm.openai_provider import OpenAIChatProvider
 
@@ -37,8 +35,6 @@ def _build_llm_provider(mode: AIProviderMode) -> ILLMProvider:
             return OpenAIChatProvider()
         case AIProviderMode.MOCK:
             return MockLLMProvider()
-        case AIProviderMode.BEDROCK:
-            return BedrockClaudeProvider()
     raise ProviderConfigError(f"Unknown AI_PROVIDER_MODE: {mode!r}")
 
 
@@ -48,8 +44,6 @@ def _build_image_provider(mode: AIProviderMode) -> IImageProvider:
             return OpenAIImageProvider()
         case AIProviderMode.MOCK:
             return MockImageProvider()
-        case AIProviderMode.BEDROCK:
-            return BedrockNovaCanvasProvider()
     raise ProviderConfigError(f"Unknown AI_PROVIDER_MODE: {mode!r}")
 
 

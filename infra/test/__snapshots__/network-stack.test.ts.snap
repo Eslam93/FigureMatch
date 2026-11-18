@@ -14,17 +14,6 @@ exports[`NetworkStack (dev) matches snapshot 1`] = `
         ],
       },
     },
-    "SgRedisId": {
-      "Export": {
-        "Name": "test-network-sg-redis-id",
-      },
-      "Value": {
-        "Fn::GetAtt": [
-          "SgRedis85D0B09A",
-          "GroupId",
-        ],
-      },
-    },
     "VpcId": {
       "Description": "VPC ID for downstream stacks",
       "Export": {
@@ -62,24 +51,6 @@ exports[`NetworkStack (dev) matches snapshot 1`] = `
             "FromPort": 5432,
             "IpProtocol": "tcp",
             "ToPort": 5432,
-          },
-        ],
-        "VpcId": {
-          "Ref": "Vpc8378EB38",
-        },
-      },
-      "Type": "AWS::EC2::SecurityGroup",
-    },
-    "SgRedis85D0B09A": {
-      "Properties": {
-        "GroupDescription": "ElastiCache Redis: VPC-internal only (USE_REDIS=false until VPC connector lands)",
-        "SecurityGroupEgress": [
-          {
-            "CidrIp": "255.255.255.255/32",
-            "Description": "Disallow all traffic",
-            "FromPort": 252,
-            "IpProtocol": "icmp",
-            "ToPort": 86,
           },
         ],
         "VpcId": {

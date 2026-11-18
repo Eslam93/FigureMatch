@@ -129,8 +129,6 @@ const data = new DataStack(app, `figurematch-${envName}-data`, {
   cfg,
   vpc: network.vpc,
   sgRds: network.sgRds,
-  // sgRedis kept on NetworkStack but unused by DataStack today — the
-  // ElastiCache cluster was removed pending Phase 11 + a VPC connector.
 });
 
 const compute = new ComputeStack(app, `figurematch-${envName}-compute`, {

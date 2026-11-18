@@ -18,8 +18,7 @@ app. It is kept as a record of that deployment, not as a ready path to a new one
 | `figurematch-dev-edge` | An Amplify app for the static frontend, with no Git connection |
 | `figurematch-dev-observability` | Nothing: a placeholder for alarms that were never written |
 
-There is no Redis, no CloudFront distribution and no `prod` environment. A Redis security
-group is still defined in the network stack, although no cluster exists.
+There is no Redis, no CloudFront distribution and no `prod` environment.
 
 ## Commands
 

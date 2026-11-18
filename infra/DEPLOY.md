@@ -8,9 +8,10 @@
 >   created by hand during the May deploy, and no stack defines it.
 > - Steps 4 and 5 call `cdk deploy` without the `cors_origins` and `images_cdn_base_url`
 >   context that synth now requires for every stack.
-> - `deploy.yml`, which steps 12 and "Routine deploys" rely on, never completed a run: its
+> - The `deploy.yml` workflow this runbook used to end with never completed a run: its
 >   only run, on 15 May 2026, failed because its OIDC role was never configured. Every
->   deploy was manual.
+>   deploy was manual. The workflow, and the steps here that set it up, were removed in
+>   November 2026.
 > - Step 11 refers to a "Live demo" section the README no longer has.
 >
 > Fix those before following it.
@@ -275,39 +276,6 @@ In the project root `README.md` §1 "Live demo":
 - **Backend**: https://<apprunner-url>/api/v1/health
 - **Frontend**: https://<amplify-branch>.<amplify-app-id>.amplifyapp.com
 ```
-
-### 12. Flip `deploy.yml` to auto-trigger
-
-Once the manual deploy succeeds end-to-end (above), update `.github/workflows/deploy.yml`:
-
-```yaml
-on:
-  workflow_dispatch:
-    inputs:
-      env: ...
-  push:
-    branches: [main]
-    paths:
-      - 'backend/**'
-      - '.github/workflows/deploy.yml'
-```
-
-Also add the required GitHub Secrets:
-
-- `AWS_DEPLOY_ROLE_ARN` — OIDC role ARN from your bootstrap. Create with `aws iam create-role` + the GitHub OIDC trust policy (see [AWS docs](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc.html)).
-
-## Routine deploys (after first-deploy bootstrap)
-
-Once everything is set up, every push to `main` that touches `backend/` triggers `deploy.yml` automatically. The workflow:
-
-1. OIDC-assumes the deploy role
-2. Builds + pushes the backend Docker image to ECR (`:latest` + `:<sha>`)
-3. Runs migrations as a Fargate one-off task
-4. Triggers App Runner deployment
-5. Waits for RUNNING status
-6. Smoke-tests `/health`
-
-If any step fails, the workflow exits non-zero and notifies on the PR / commit.
 
 ## Teardown
 

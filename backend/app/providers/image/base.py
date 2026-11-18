@@ -20,9 +20,7 @@ from typing import Protocol
 class ImageQuality(StrEnum):
     """Quality tier requested from the image provider.
 
-    Maps to provider-specific configuration:
-    - OpenAI GPT Image models: `quality="low" | "medium" | "high"`
-    - Bedrock Nova Canvas: `low → standard`, `medium/high → premium`
+    Maps to the OpenAI GPT Image models' `quality="low" | "medium" | "high"`.
 
     `low` is the dev/CI default. `medium` is the production default for
     most flows. `high` is reserved for hero-image moments where the

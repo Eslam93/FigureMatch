@@ -44,4 +44,4 @@ def test_meta_response_model_is_in_openapi() -> None:
     schemas = spec["components"]["schemas"]
     assert set(schemas["MetaResponse"]["properties"]) == {"provider_mode", "app_version"}
     assert set(schemas["MetaResponse"]["required"]) == {"provider_mode", "app_version"}
-    assert set(schemas["AIProviderMode"]["enum"]) == {"openai", "mock", "bedrock"}
+    assert set(schemas["AIProviderMode"]["enum"]) == {"openai", "mock"}

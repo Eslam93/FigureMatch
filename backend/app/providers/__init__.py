@@ -4,8 +4,8 @@
 
 """AI provider abstractions.
 
-Two protocols (`ILLMProvider`, `IImageProvider`) with three implementations
-each: OpenAI (primary), Mock (zero-key demo + tests), and Bedrock (stubbed).
+Two protocols (`ILLMProvider`, `IImageProvider`) with two implementations
+each: OpenAI, and Mock (canned output for tests and a demo with no key).
 The factory selects an implementation based on `AI_PROVIDER_MODE`.
 """
 

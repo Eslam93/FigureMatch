@@ -43,7 +43,6 @@ class Environment(StrEnum):
 
 class AIProviderMode(StrEnum):
     OPENAI = "openai"
-    BEDROCK = "bedrock"
     MOCK = "mock"
 
 
@@ -356,13 +355,6 @@ class Settings(BaseSettings):
                 "to override (intended only for demo/staging environments, "
                 "never for real-user-facing traffic)."
             )
-        if self.ai_provider_mode == AIProviderMode.BEDROCK:
-            raise ValueError(
-                "AI_PROVIDER_MODE=bedrock is documented but not implemented. "
-                "Either switch to AI_PROVIDER_MODE=openai (recommended) or "
-                "AI_PROVIDER_MODE=mock + ALLOW_MOCK_PROVIDER=true, or "
-                "implement the Bedrock providers before deploying with this mode."
-            )
         return self
 
     @model_validator(mode="after")
@@ -370,8 +362,8 @@ class Settings(BaseSettings):
         """Refuse to boot on an OpenAI model that can't work or can't be
         priced, rather than finding out after the first paid call.
 
-        Only `AI_PROVIDER_MODE=openai` calls these models, so mock and
-        bedrock modes skip the check. Declared after the secrets /
+        Only `AI_PROVIDER_MODE=openai` calls these models, so mock mode
+        skips the check. Declared after the secrets /
         provider-mode validator so its error messages keep precedence.
         The per-environment rules live in `_openai_model_problem`.
         """

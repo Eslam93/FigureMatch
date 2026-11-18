@@ -34,8 +34,10 @@ class ResultParseStatus(StrEnum):
 class ImageProvider(StrEnum):
     """Which image-generation backend produced a given image."""
 
-    OPENAI = "openai"  # GPT Image models (default gpt-image-2.5-flare)
-    NOVA_CANVAS = "nova_canvas"  # AWS Bedrock — documented alternative
+    OPENAI = "openai"  # GPT Image models, and the mock provider
+    # In the database's `image_provider` type since the baseline migration.
+    # Nothing produces it: the Bedrock stub it was for has been removed.
+    NOVA_CANVAS = "nova_canvas"
 
 
 class ImprovementGoal(StrEnum):
@@ -46,13 +48,3 @@ class ImprovementGoal(StrEnum):
     FORMAL = "formal"
     SEO = "seo"
     AUDIENCE_REWRITE = "audience_rewrite"
-
-
-class UsageEventType(StrEnum):
-    """Categories of billable / trackable user activity."""
-
-    TEXT_GEN = "text_gen"
-    IMAGE_GEN = "image_gen"
-    IMPROVE = "improve"
-    IMAGE_REGEN = "image_regen"
-    EXPORT = "export"

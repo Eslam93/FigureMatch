@@ -35,10 +35,11 @@ was taken down in June 2026. The studio runs on one machine:
 In May, Bedrock needed a per-account access form for Claude and a cross-region inference
 profile, and its image model was listed as legacy. One OpenAI key covered text and
 images. The backend calls models only through `ILLMProvider` and `IImageProvider`, with
-an OpenAI and a mock implementation of each. The Bedrock classes beside them are stubs
-that raise on construction, and the backend refuses to boot in `bedrock` mode: no
-Bedrock call has ever been written. Adding a provider means implementing the two
-interfaces, not swapping one class.
+an OpenAI and a mock implementation of each. Bedrock classes stood beside them until
+November 2026, as stubs that raised when constructed; no Bedrock call was ever written,
+and the stubs were removed
+([decision 0013](./docs/decisions/0013-cut-what-only-pretended-to-work.md)). Adding a
+provider means implementing the two interfaces.
 
 ### 2. Custom JWT, not Cognito
 
@@ -124,7 +125,8 @@ These were in the May plan and do not exist. Some still have open issues from th
 - An S3 image storage adapter and CloudFront in front of it
   ([#49](https://github.com/Eslam93/FigureMatch/issues/49)).
 - A deploy pipeline. `deploy.yml` ran once, on 15 May 2026, and failed: its OIDC role was
-  never configured. Every deploy was done by hand.
+  never configured. Every deploy was done by hand, and the workflow was removed in
+  November 2026.
 - A refresh-token blocklist, idempotency keys, per-endpoint and per-account rate limits,
   all of which the plan put on Redis
   ([#88](https://github.com/Eslam93/FigureMatch/issues/88),

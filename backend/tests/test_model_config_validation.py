@@ -197,10 +197,9 @@ def test_unpriced_model_without_a_shutdown_date_fails_outside_local(
 # ── modes that never call OpenAI skip the check ────────────────────────
 
 
-@pytest.mark.parametrize("mode", [AIProviderMode.MOCK, AIProviderMode.BEDROCK])
-def test_non_openai_modes_skip_the_model_check_in_local(mode: AIProviderMode) -> None:
+def test_mock_mode_skips_the_model_check_in_local() -> None:
     settings = _local(
-        ai_provider_mode=mode,
+        ai_provider_mode=AIProviderMode.MOCK,
         openai_text_model="gpt-9-imaginary",
         openai_image_model="gpt-image-1",
     )

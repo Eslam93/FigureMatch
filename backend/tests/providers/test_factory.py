@@ -50,17 +50,17 @@ def test_openai_mode_returns_openai_providers(monkeypatch: MonkeyPatch) -> None:
     assert isinstance(factory.get_image_provider(), OpenAIImageProvider)
 
 
-def test_bedrock_mode_raises_config_error(monkeypatch: MonkeyPatch) -> None:
-    """Bedrock impls are deliberately stubbed — selecting the mode
-    must fail at construction so a misconfigured deploy doesn't
-    silently 'work' with `NotImplementedError` at first request time."""
-    from app.core.config import AIProviderMode, get_settings
+def test_unknown_mode_raises_config_error(monkeypatch: MonkeyPatch) -> None:
+    """A mode the factory has no provider for fails at construction, not
+    at the first request. Settings rejects such a value at boot; this
+    covers a value set after boot, as here."""
+    from app.core.config import get_settings
 
-    monkeypatch.setattr(get_settings(), "ai_provider_mode", AIProviderMode.BEDROCK)
-    with pytest.raises(ProviderConfigError, match="not implemented"):
+    monkeypatch.setattr(get_settings(), "ai_provider_mode", "bedrock")
+    with pytest.raises(ProviderConfigError, match="Unknown AI_PROVIDER_MODE"):
         factory.get_llm_provider()
     factory.reset_provider_cache()
-    with pytest.raises(ProviderConfigError, match="not implemented"):
+    with pytest.raises(ProviderConfigError, match="Unknown AI_PROVIDER_MODE"):
         factory.get_image_provider()
 
 

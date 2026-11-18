@@ -8,7 +8,7 @@
  * Snapshot covers regression on the synthesized CloudFormation —
  * any unexpected resource churn shows up as a diff. Resource counts
  * pin the brief's stated topology: 1 VPC, 2 AZs (so 2 public subnets),
- * 2 SGs (RDS + Redis), 0 NAT gateways.
+ * 1 SG (RDS), 0 NAT gateways.
  */
 
 import { App } from "aws-cdk-lib";
@@ -42,8 +42,8 @@ describe("NetworkStack (dev)", () => {
     template.resourceCountIs("AWS::EC2::NatGateway", 0);
   });
 
-  it("provisions two security groups (RDS + Redis)", () => {
-    template.resourceCountIs("AWS::EC2::SecurityGroup", 2);
+  it("provisions one security group, for RDS", () => {
+    template.resourceCountIs("AWS::EC2::SecurityGroup", 1);
   });
 
   // CDK renders ingress rules added via `addIngressRule` as separate
@@ -74,10 +74,8 @@ describe("NetworkStack (dev)", () => {
     });
   });
 
-  it("Redis SG has no ingress rules (VPC-internal only)", () => {
-    // ElastiCache stays VPC-internal; USE_REDIS=false until a VPC
-    // connector lands. Redis SG should have an empty ingress list
-    // (or no ingress key) and no separate ingress resource for 6379.
+  it("has nothing for Redis: no rule for port 6379 and no Redis output", () => {
+    // There is no Redis. An unused Redis SG stood here until November 2026.
     const ingressResources = template.findResources(
       "AWS::EC2::SecurityGroupIngress",
     );
@@ -85,5 +83,6 @@ describe("NetworkStack (dev)", () => {
       (r) => r.Properties?.FromPort === 6379,
     );
     expect(port6379).toHaveLength(0);
+    expect(Object.keys(template.findOutputs("SgRedisId"))).toHaveLength(0);
   });
 });

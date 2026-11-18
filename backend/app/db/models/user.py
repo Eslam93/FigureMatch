@@ -29,7 +29,6 @@ if TYPE_CHECKING:
     from app.db.models.content_piece import ContentPiece
     from app.db.models.improvement import Improvement
     from app.db.models.refresh_token import RefreshToken
-    from app.db.models.usage_event import UsageEvent
 
 
 class User(TimestampedMixin, Base):
@@ -69,11 +68,6 @@ class User(TimestampedMixin, Base):
         passive_deletes=True,
     )
     improvements: Mapped[list[Improvement]] = relationship(
-        back_populates="user",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-    )
-    usage_events: Mapped[list[UsageEvent]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
         passive_deletes=True,

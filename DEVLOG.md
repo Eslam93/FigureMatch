@@ -377,7 +377,7 @@ I picked **none of the above** for Phase 2 and shipped EdgeStack with Amplify on
 
 ### The deploy workflow that doesn't deploy
 
-[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) is `workflow_dispatch`-only by design. Flipping it to `on: push: main` would auto-deploy every PR merge, but the deploy can't actually succeed until:
+[`.github/workflows/deploy.yml`](https://github.com/Eslam93/FigureMatch/blob/take-home-2026-05-16/.github/workflows/deploy.yml) is `workflow_dispatch`-only by design. Flipping it to `on: push: main` would auto-deploy every PR merge, but the deploy can't actually succeed until:
 
 1. Someone runs `aws configure` against a real account
 2. CDK bootstrap happens (`npx cdk bootstrap aws://ACCOUNT/us-east-1`)

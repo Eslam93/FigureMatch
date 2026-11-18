@@ -86,9 +86,8 @@ class ProviderRetryExhausted(ProviderError):
 
 class ProviderConfigError(ProviderError):
     """Raised when a provider can't run because its configuration is
-    invalid (missing API key, unpriced model, Bedrock without an
-    implementation, etc.). Distinct from runtime failures because the
-    cause is structural, not transient.
+    invalid (missing API key, unpriced model, etc.). Distinct from
+    runtime failures because the cause is structural, not transient.
     """
 
     kind = ProviderErrorKind.MISCONFIGURED

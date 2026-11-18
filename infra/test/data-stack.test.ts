@@ -7,10 +7,8 @@
  *
  * Pins the data topology: one RDS instance, one S3 bucket, two
  * Secrets Manager secrets (JWT + OpenAI key — RDS auto-creates its
- * own secret so the count is 3 from CDK's perspective). The
- * ElastiCache Serverless Redis cluster was dropped in the
- * security-and-storage hardening pass; if it returns, re-add the
- * resource-count assertion.
+ * own secret so the count is 3 from CDK's perspective). There is no
+ * ElastiCache cluster.
  */
 
 import { App } from "aws-cdk-lib";

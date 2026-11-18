@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 /**
- * NetworkStack — VPC, subnets, security groups.
+ * NetworkStack — VPC, subnets, and the database's security group.
  *
  * Design choices (per brief §11 — revised after P2.11 review):
  *
@@ -27,13 +27,11 @@
  *          (`backend/app/core/aws_secrets.py`) so the client refuses
  *          plaintext fallback.
  *       3. Custom JWT auth at the app layer.
- *     For dev this is acceptable; prod will narrow when we adopt a
- *     VPC connector (P11.x) or move to RDS Proxy / Aurora Data API.
+ *     Acceptable for a short demo. A service with users would need a
+ *     VPC connector, or RDS Proxy, before the SG could be narrowed.
  *
- *   - Redis SG: unchanged surface (no public ingress). ElastiCache is
- *     reachable only from within the VPC, and App Runner without a
- *     VPC connector can't reach it. The backend runs with USE_REDIS=false
- *     in this phase; Redis lights up alongside the VPC-connector work.
+ *   - No Redis security group: there is no Redis. One stood here,
+ *     unused, until November 2026.
  */
 
 import { CfnOutput, Stack, type StackProps } from "aws-cdk-lib";
@@ -49,7 +47,6 @@ export interface NetworkStackProps extends StackProps {
 export class NetworkStack extends Stack {
   public readonly vpc: Vpc;
   public readonly sgRds: SecurityGroup;
-  public readonly sgRedis: SecurityGroup;
 
   constructor(scope: Construct, id: string, props: NetworkStackProps) {
     super(scope, id, props);
@@ -74,7 +71,7 @@ export class NetworkStack extends Stack {
     // --- RDS SG ---
     // Open to 0.0.0.0/0 on 5432. App Runner public egress doesn't have
     // a stable prefix list to allowlist; security relies on Postgres
-    // auth + SSL + auto-rotated credentials in Secrets Manager.
+    // auth + SSL + a generated password in Secrets Manager (not rotated).
     // RFC1918 narrowing here would break App Runner since its egress
     // IPs are AWS-managed public ranges.
     this.sgRds = new SecurityGroup(this, "SgRds", {
@@ -88,21 +85,10 @@ export class NetworkStack extends Stack {
       "PostgreSQL - auth + SSL is the gate (no App Runner prefix list available)",
     );
 
-    // --- ElastiCache (Redis) SG ---
-    // Closed SG. Redis stays VPC-internal; App Runner can't reach it
-    // without a VPC connector. The backend runs with USE_REDIS=false
-    // until that wiring lands (P11.x). When it does, this rule
-    // becomes Peer.securityGroupId(<app-runner-vpc-connector-sg>).
-    this.sgRedis = new SecurityGroup(this, "SgRedis", {
-      vpc: this.vpc,
-      description:
-        "ElastiCache Redis: VPC-internal only (USE_REDIS=false until VPC connector lands)",
-      allowAllOutbound: false,
-    });
-    // Note: the SG `description` field above is allowed wider chars than
-    // ingress-rule descriptions; ingress descriptions reject em-dashes
-    // and many other Unicode punctuation marks. Keep ingress-rule
-    // descriptions ASCII-clean.
+    // Note: an SG's `description` allows wider characters than an
+    // ingress rule's; ingress descriptions reject em-dashes and many
+    // other Unicode punctuation marks. Keep ingress-rule descriptions
+    // ASCII-clean.
 
     new CfnOutput(this, "VpcId", {
       value: this.vpc.vpcId,
@@ -112,10 +98,6 @@ export class NetworkStack extends Stack {
     new CfnOutput(this, "SgRdsId", {
       value: this.sgRds.securityGroupId,
       exportName: `${id}-sg-rds-id`,
-    });
-    new CfnOutput(this, "SgRedisId", {
-      value: this.sgRedis.securityGroupId,
-      exportName: `${id}-sg-redis-id`,
     });
   }
 }

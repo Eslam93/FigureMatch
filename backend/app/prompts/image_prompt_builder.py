@@ -9,13 +9,9 @@ content generation: the model reads the rendered content plus a chosen
 style and returns a structured `{ prompt, negative_prompt, style_summary }`
 payload. The image provider then consumes that prompt.
 
-Two providers; one schema:
-
-- OpenAI's GPT Image models (default `gpt-image-2.5-flare`) take the
-  positive `prompt` only, so the service folds the `negative_prompt`
-  text into it.
-- Bedrock Nova Canvas takes a real negative prompt. Either way the
-  payload shape stays the same — the builder is provider-agnostic.
+OpenAI's GPT Image models (default `gpt-image-2.5-flare`) take the
+positive `prompt` only, so the service folds the `negative_prompt` text
+into it as an "Avoid:" clause. The builder itself names no provider.
 
 `PROMPT_VERSION` is persisted on `generated_images.image_prompt` so we
 can map a stored image back to the exact builder revision.

@@ -41,8 +41,8 @@
  *     trimmed IAM role: SecretsManager read for the RDS secret only,
  *     no S3 access.
  *
- * The placeholder `:latest` image is replaced on first deploy by
- * `deploy.yml`. The very first `cdk deploy` will fail at App Runner
+ * The `:latest` image is pushed by hand (`DEPLOY.md` step 4). The very
+ * first `cdk deploy` will fail at App Runner
  * creation because the image doesn't exist yet — `DEPLOY.md` covers
  * the bootstrap step (push a placeholder image to ECR before
  * `cdk deploy --all`).
@@ -225,7 +225,7 @@ export class ComputeStack extends Stack {
         authenticationConfiguration: {
           accessRoleArn: apprunnerAccessRole.roleArn,
         },
-        autoDeploymentsEnabled: false, // deploy workflow drives explicit deploys
+        autoDeploymentsEnabled: false, // deploys were started by hand (DEPLOY.md)
         imageRepository: {
           imageIdentifier: `${this.ecrRepo.repositoryUri}:latest`,
           imageRepositoryType: "ECR",
@@ -235,11 +235,6 @@ export class ComputeStack extends Stack {
               { name: "ENVIRONMENT", value: cfg.envName },
               { name: "AWS_REGION", value: cfg.region },
               { name: "AI_PROVIDER_MODE", value: "openai" },
-              // USE_REDIS=false: ElastiCache lives in the VPC, App
-              // Runner here has no VPC connector, so Redis is
-              // unreachable. The backend has an in-memory fallback
-              // path; lights up once the VPC connector arrives (P11.x).
-              { name: "USE_REDIS", value: "false" },
               { name: "LOG_LEVEL", value: "INFO" },
               // Cross-domain (*.amplifyapp.com → *.awsapprunner.com)
               // requires SameSite=None on refresh cookies. Custom
@@ -315,7 +310,7 @@ export class ComputeStack extends Stack {
 
     // --- Migration runner (Fargate task definition) ---
     // Runs `alembic upgrade head` as a one-off task pre-deploy.
-    // No service — invoked by `aws ecs run-task` from deploy.yml.
+    // No service — invoked by hand with `aws ecs run-task` (DEPLOY.md step 6).
     this.ecsCluster = new Cluster(this, "MigrationCluster", {
       clusterName: `figurematch-${cfg.envName}-migrations`,
       vpc,

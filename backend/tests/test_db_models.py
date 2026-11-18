@@ -18,7 +18,6 @@ from app.db.enums import (
     ImageProvider,
     ImprovementGoal,
     ResultParseStatus,
-    UsageEventType,
 )
 from app.db.models import (
     BrandVoice,
@@ -26,7 +25,6 @@ from app.db.models import (
     GeneratedImage,
     Improvement,
     RefreshToken,
-    UsageEvent,
     User,
 )
 
@@ -39,10 +37,10 @@ def test_all_tables_registered_on_metadata() -> None:
         "content_pieces",
         "generated_images",
         "improvements",
-        "usage_events",
     }
-    actual = set(Base.metadata.tables.keys())
-    assert expected.issubset(actual), f"missing: {expected - actual}"
+    # Tables named with a leading underscore are probes other tests register.
+    actual = {name for name in Base.metadata.tables if not name.startswith("_")}
+    assert actual == expected, f"missing: {expected - actual}, unexpected: {actual - expected}"
 
 
 def test_user_table_shape() -> None:
@@ -164,14 +162,6 @@ def test_improvement_shape() -> None:
     assert cols["new_audience"].nullable is True
 
 
-def test_usage_event_metadata_aliased() -> None:
-    # SQLAlchemy reserves `metadata` on Base; column is mapped to `meta`
-    # but stored as `metadata` in Postgres.
-    cols = UsageEvent.__table__.columns
-    assert "metadata" in cols
-    assert "meta" not in cols
-
-
 def test_enum_values_match_brief_contract() -> None:
     assert {e.value for e in ContentType} == {
         "blog_post",
@@ -187,11 +177,4 @@ def test_enum_values_match_brief_contract() -> None:
         "formal",
         "seo",
         "audience_rewrite",
-    }
-    assert {e.value for e in UsageEventType} == {
-        "text_gen",
-        "image_gen",
-        "improve",
-        "image_regen",
-        "export",
     }

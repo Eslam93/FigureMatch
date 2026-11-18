@@ -23,6 +23,7 @@ was weighed, the record says so instead of inventing one.
 | [0010](./0010-measure-before-building-the-checker.md) | The checker is built only if a measurement fixed in advance says so | 2026-11-18, `f63b393` | 2026-11-18 |
 | [0011](./0011-replay-the-audit-against-a-stand-in.md) | The audit is replayed against a stand-in for OpenAI, not the real API | 2026-11-18, `948fdce` | 2026-11-18 |
 | [0012](./0012-ci-writes-down-its-own-numbers.md) | CI commits the numbers it measured, because its logs expire | 2026-11-18 | 2026-11-18 |
+| [0013](./0013-cut-what-only-pretended-to-work.md) | The Bedrock stubs, the deploy workflow, the Redis switches and the usage model are removed | 2026-11-18 | 2026-11-18 |
 
 Also in #155, without a record of their own: unhandled 500s are rendered inside the
 middleware stack, so they carry a request id and the security headers; the rendered

@@ -16,7 +16,7 @@ backend/
 │   ├── db/                # engine and session, models, enums
 │   ├── repositories/      # queries, one module per table
 │   ├── services/          # business logic, renderers, image storage
-│   ├── providers/         # ILLMProvider and IImageProvider: OpenAI and mock implementations, and Bedrock stubs that raise
+│   ├── providers/         # ILLMProvider and IImageProvider, each with an OpenAI and a mock implementation
 │   ├── prompts/           # one module per content type, plus the improver and the image prompt
 │   ├── schemas/           # request and response models
 │   ├── middleware/        # request id, CSRF origin check, rate limit, security headers, access log, 500s

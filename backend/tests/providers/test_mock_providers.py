@@ -87,8 +87,8 @@ async def test_mock_llm_unknown_content_type_returns_fallback() -> None:
 
 
 async def test_mock_llm_reports_zero_cost_and_zero_latency() -> None:
-    """The mock should NEVER show non-zero cost — usage_events
-    aggregation must distinguish real-money calls from offline mocks."""
+    """The mock should NEVER show non-zero cost, so recorded costs tell
+    real-money calls apart from offline mocks."""
     provider = MockLLMProvider()
     result = await provider.generate(
         system_prompt="x",

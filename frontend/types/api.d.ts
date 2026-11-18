@@ -349,7 +349,7 @@ export interface components {
 
     // ── System ───────────────────────────────────────────────────
     MetaResponse: {
-      provider_mode: "openai" | "mock" | "bedrock";
+      provider_mode: "openai" | "mock";
       app_version: string;
     };
   };

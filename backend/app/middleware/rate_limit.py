@@ -7,8 +7,8 @@
 MVP-grade: a fixed-window counter keyed on `(rule_key, ip)` where
 `rule_key` is either an exact-match path (`/api/v1/auth/login`) or the
 pattern label of a regex-matched rule (`pattern:image_generate`).
-Survives until P11.3 swaps in a Redis-backed sliding window that works
-across processes and outlives restarts.
+The counters live in this process's memory: each backend process has
+its own, and a restart clears them.
 
 Scope:
   - Only the configured rules trigger limiting; everything else is a
@@ -41,7 +41,7 @@ _WINDOW_SECONDS: Final[int] = 60
 # Hard cap on the number of (rule_key, ip) buckets we'll keep in memory.
 # Without this, an attacker spamming distinct source IPs would balloon
 # memory. When the cap is hit, the LEAST-recently-touched key gets
-# evicted. P11.3's Redis version makes this irrelevant.
+# evicted.
 _MAX_BUCKETS: Final[int] = 50_000
 
 

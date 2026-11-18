@@ -12,7 +12,7 @@ Slice 3 connects three moving parts that have been stubbed for a while:
      as text gen; the cost shows up under the same provider config.
   2. The image provider — a GPT Image model (default
      `gpt-image-2.5-flare`) in OpenAI mode, `mock-image-v1` for
-     tests/demos, Bedrock Nova Canvas stubbed for later.
+     tests/demos.
   3. `IImageStorage` — local-disk by default in this slice; an S3 path
      will land with the deploy batch.
 
@@ -153,9 +153,6 @@ class ImageService:
         # --- Step 2: ask the image provider for bytes ---
         # OpenAI's Images API doesn't accept a separate negative_prompt —
         # fold the negatives into the positive prompt as an "avoid" clause.
-        # This is a no-op for providers that accept a real negative
-        # field (Bedrock); it's still safe because the wording is
-        # natural-language English.
         positive_prompt = prompt_outcome.payload.prompt
         if prompt_outcome.payload.negative_prompt.strip():
             positive_prompt = (
@@ -178,14 +175,15 @@ class ImageService:
         cdn_url = self._storage.public_url_for(s3_key)
 
         await self._image_repo.mark_others_not_current(piece.id)
-        provider_enum = self._image_provider_enum(image_result.model)
         total_cost = prompt_outcome.cost_usd + Decimal(str(image_result.cost_usd))
         new_image = GeneratedImage(
             content_piece_id=piece.id,
             image_prompt=positive_prompt,
             negative_prompt=prompt_outcome.payload.negative_prompt or None,
             style=style,
-            provider=provider_enum,
+            # The mock provider is recorded as OPENAI too: the two share a
+            # generation surface, and `model_id` tells them apart.
+            provider=ImageProvider.OPENAI,
             model_id=image_result.model,
             width=image_result.width,
             height=image_result.height,
@@ -245,19 +243,6 @@ class ImageService:
             model_id=llm_result.model,
             cost_usd=cost,
         )
-
-    @staticmethod
-    def _image_provider_enum(model: str) -> ImageProvider:
-        """Map a model id to the persisted `ImageProvider` enum.
-
-        Mock and OpenAI map to OPENAI for the persisted column — they
-        share a generation surface, and the dashboard distinguishes
-        them via `model_id`, not the enum. Bedrock Nova Canvas gets
-        its own row when that path is wired.
-        """
-        if model.startswith("nova-canvas"):
-            return ImageProvider.NOVA_CANVAS
-        return ImageProvider.OPENAI
 
 
 def _is_lock_not_available(exc: DBAPIError) -> bool:

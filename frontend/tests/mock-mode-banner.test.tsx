@@ -70,8 +70,8 @@ describe("MockModeBanner", () => {
     expect(mocks.get).toHaveBeenCalledWith("/meta");
   });
 
-  it.each(["openai", "bedrock"] as const)("renders nothing in %s mode", async (mode) => {
-    mocks.get.mockResolvedValue(metaAnswer(mode));
+  it("renders nothing in openai mode", async () => {
+    mocks.get.mockResolvedValue(metaAnswer("openai"));
     renderBanner();
 
     await screen.findByTestId("meta-settled");

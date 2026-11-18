@@ -3,19 +3,15 @@
 // SPDX-License-Identifier: MIT
 
 /**
- * DataStack — RDS Postgres + ElastiCache Redis + S3 images bucket
- * + Secrets Manager entries.
+ * DataStack — RDS Postgres + S3 images bucket + Secrets Manager entries.
  *
  * Design choices:
  *
  *   - RDS Postgres 16, t4g.micro for dev. `publiclyAccessible: true`
- *     is the brief's deliberate decision — the SG (from NetworkStack)
- *     locks inbound to App Runner + dev IPs only. Auto-generated
+ *     is the brief's deliberate decision. The SG (from NetworkStack)
+ *     is open on 5432: TLS and the password are the gate. Auto-generated
  *     password lives in Secrets Manager from creation, not exported
  *     anywhere else.
- *
- *   - ElastiCache Serverless Redis. Auto-scales, no instance sizing
- *     to worry about. Subnet IDs from NetworkStack's public subnets.
  *
  *   - S3 images bucket: `ai-content-images-${env}`. BLOCK_ALL public,
  *     S3-managed encryption. CloudFront OAC is wired up in EdgeStack;
@@ -69,12 +65,6 @@ export interface DataStackProps extends StackProps {
   cfg: EnvConfig;
   vpc: Vpc;
   sgRds: SecurityGroup;
-  // Note: sgRedis was previously consumed here to attach to the
-  // ElastiCache cluster. The Redis cluster has been removed (see
-  // commit-log) — the backend runs with USE_REDIS=false and pays
-  // for nothing it doesn't use. `sgRedis` still exists in
-  // NetworkStack so the VPC-connector + Redis revival path is
-  // unchanged when Phase 11 lights it up.
 }
 
 export class DataStack extends Stack {
@@ -129,13 +119,8 @@ export class DataStack extends Stack {
       deletionProtection: cfg.envName !== "dev",
     });
 
-    // --- ElastiCache Serverless Redis (removed) ---
-    // Previously provisioned here, but the backend ships with
-    // USE_REDIS=false and App Runner has no VPC connector — the
-    // cluster was unreachable AND being billed (~$60/month).
-    // When Phase 11 wires the VPC connector + refresh-token blocklist,
-    // re-add the `CfnServerlessCache` + `CfnSubnetGroup` block (the
-    // `sgRedis` in NetworkStack is still in place for that day).
+    // No ElastiCache: an unreachable Redis cluster stood here, billed,
+    // until it was removed in May 2026. The backend has no Redis code.
 
     // --- S3 bucket for AI-generated images ---
     // S3 bucket names are globally unique. Append the account ID so

@@ -211,12 +211,14 @@ def test_mock_provider_allowed_in_production_with_escape_hatch(
     assert settings.ai_provider_mode.value == "mock"
 
 
-def test_bedrock_provider_rejected_at_startup(monkeypatch: MonkeyPatch) -> None:
-    """The factory is lazy — without this guard, a misconfigured
-    AI_PROVIDER_MODE=bedrock deploy stays healthy at startup and only
-    explodes at first generation request. Fail at startup instead."""
-    with pytest.raises(ValueError, match="bedrock is documented but not implemented"):
-        _build_settings(monkeypatch, AI_PROVIDER_MODE="bedrock")
+@pytest.mark.parametrize("environment", ["production", "local"])
+def test_bedrock_provider_rejected_at_startup(monkeypatch: MonkeyPatch, environment: str) -> None:
+    """The factory is lazy, so a mode with no provider must be refused at
+    startup, not at the first generation request. Bedrock had only stubs
+    and was removed, so the value is refused in every environment,
+    `local` included, where the stub used to boot and fail later."""
+    with pytest.raises(ValueError, match="ai_provider_mode"):
+        _build_settings(monkeypatch, ENVIRONMENT=environment, AI_PROVIDER_MODE="bedrock")
 
 
 def test_local_env_allows_mock_without_escape_hatch(monkeypatch: MonkeyPatch) -> None:

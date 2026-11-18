@@ -30,9 +30,8 @@ class ImageGenerateRequest(BaseModel):
     """Body for POST /content/{id}/image.
 
     `style` defaults to photorealistic so the route works with no body.
-    `provider` is reserved for future-flexibility (Bedrock vs OpenAI);
-    Slice 3 honours whatever `AI_PROVIDER_MODE` is configured and
-    ignores explicit overrides.
+    The provider is whatever `AI_PROVIDER_MODE` configures; a request
+    cannot choose it.
     """
 
     style: ImageStyle = "photorealistic"

@@ -109,7 +109,7 @@ class ContentPiece(SoftDeleteMixin, TimestampedMixin, Base):
     )
     word_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
-    # Usage tracking (inline in this phase; usage_events table arrives in P9).
+    # Usage: the model, tokens and cost of the calls that produced this piece.
     model_id: Mapped[str] = mapped_column(String(120), nullable=False)
     input_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     output_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
