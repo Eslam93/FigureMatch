@@ -102,7 +102,7 @@ FigureMatch/
 ├── ARCHITECTURE.md     # the design: what runs today, and the May deployment
 ├── DEVLOG.md           # build journal, May 2026
 ├── docs/decisions/     # one record per decision since May, each dated
-├── numbers/            # test counts and coverage, committed by CI
+├── numbers/            # where CI's dated test counts and coverage are kept, and why
 ├── docker-compose.yml  # Postgres and the backend for local work
 ├── .env.example        # environment template
 ├── .github/workflows/  # CI
@@ -186,10 +186,10 @@ uvx --from "reuse[charset-normalizer]==6.3.0" reuse lint
 | [`model-lifecycle`](./.github/workflows/model-lifecycle.yml) | Mondays 06:17 UTC, manual, and PRs touching the catalog | Fails if a configured model is unknown, unpriced, shut down, shutting down within 30 days, or listed on OpenAI's deprecations page |
 | [`audit-replay`](./.github/workflows/audit-replay.yml) | `audit/**` and `backend/**` changes, and manual | The four audit probes fail on the May tag and pass on the commit being built; the May suite still executes every faulty line |
 | [`gate`](./.github/workflows/gate.yml) | `gate/**` changes | ruff, mypy, the matcher's tests, and that `gate/SCORE.md` is what the matcher produces |
-| [`numbers`](./.github/workflows/numbers.yml) | pushes to `main` and working branches that change code, and manual | Runs every check that produces a number and writes them to a dated file. On `main`, CI commits it under [`numbers/`](./numbers/) |
+| [`numbers`](./.github/workflows/numbers.yml) | pushes to `main` and working branches that change code, and manual | Runs every check that produces a number and writes them to a dated file. On `main`, CI commits it to the [`numbers`](https://github.com/Eslam93/FigureMatch/tree/numbers) branch |
 | [`reuse`](./.github/workflows/reuse.yml) | pushes to `main` and working branches, and every PR | Every file states its copyright and licence |
 
-GitHub deletes Actions logs after a while: the log of the last May-era backend run, on 2 June 2026, is already gone. So the numbers CI measures on `main` are committed by CI itself, as dated files in [`numbers/`](./numbers/), and a reader does not have to take a figure from this README on trust.
+GitHub deletes Actions logs after a while: the log of the last May-era backend run, on 2 June 2026, is already gone. So the numbers CI measures on `main` are committed by CI itself, as dated files on the [`numbers`](https://github.com/Eslam93/FigureMatch/tree/numbers) branch, and a reader does not have to take a figure from this README on trust.
 
 ## Deployment
 

@@ -14,7 +14,9 @@ missing is reported as "not measured", never guessed.
 
 The file is written to OUT_DIR/<YYYY-MM-DD>.md, dated in UTC, and the same
 text is printed. The run's commit, address and tool versions come from the
-environment GitHub Actions sets. Standard library only.
+environment GitHub Actions sets. Its links point at the commit it measured,
+so they work from the `numbers` branch, where CI keeps these files.
+Standard library only.
 """
 
 from __future__ import annotations
@@ -155,6 +157,10 @@ def render(work: Path, measured_at: datetime) -> str:
     run_url = f"{server}/{repo}/actions/runs/{run_id}/attempts/{attempt}" if run_id else None
     commit_url = f"{server}/{repo}/commit/{sha}" if sha else None
 
+    def at_commit(text: str, path: str, kind: str = "tree") -> str:
+        """`text` linked to `path` as it was at the measured commit."""
+        return f"[{text}]({server}/{repo}/{kind}/{sha}/{path})" if repo and sha else text
+
     replay, postgres = _replay(work / "replay.json")
     gate_labelled, gate_tests = _gate(work / "gate-score.json", work / "gate-junit.xml")
     runner = " ".join(
@@ -180,8 +186,10 @@ def render(work: Path, measured_at: datetime) -> str:
     lines = [
         f"# CI numbers, {measured_at:%Y-%m-%d}",
         "",
-        "Measured, written and committed by the [`numbers`](../.github/workflows/numbers.yml)",
-        "workflow on GitHub's runner. No person typed these figures.",
+        "Measured, written and committed by the "
+        + at_commit("`numbers`", ".github/workflows/numbers.yml", "blob")
+        + " workflow",
+        "on GitHub's runner. No person typed these figures.",
         "",
         f"- Measured at: {measured_at:%Y-%m-%dT%H:%M:%SZ}",
         f"- Commit: [`{sha[:7]}`]({commit_url}) on `{ref}`" if commit_url else "- Commit: unknown",
@@ -196,8 +204,8 @@ def render(work: Path, measured_at: datetime) -> str:
         f"| Frontend tests (Vitest) | {_vitest(work / 'frontend.json')} |",
         f"| Infrastructure tests (Jest) | {_jest(work / 'infra.json')} |",
         f"| Files that state an author and licence (`reuse lint`) | {_reuse(work / 'reuse.json')} |",
-        f"| Audit replay ([`audit/`](../audit/)) | {replay} |",
-        f"| Gate matcher on the labelled cases ([`gate/`](../gate/)) | {gate_labelled} |",
+        f"| Audit replay ({at_commit('`audit/`', 'audit')}) | {replay} |",
+        f"| Gate matcher on the labelled cases ({at_commit('`gate/`', 'gate')}) | {gate_labelled} |",
         f"| Gate matcher's fresh test cases | {gate_tests} |",
         "",
     ]

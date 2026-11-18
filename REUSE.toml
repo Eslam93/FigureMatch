@@ -39,13 +39,6 @@ path = "backend/alembic/script.py.mako"
 SPDX-FileCopyrightText = ["2009-2026 Michael Bayer", "2026 Eslam Hamed"]
 SPDX-License-Identifier = "MIT"
 
-# Numbers written and committed by CI, one file per day. No person writes
-# them, so none is named.
-[[annotations]]
-path = "numbers/20*.md"
-SPDX-FileCopyrightText = "NONE"
-SPDX-License-Identifier = "CC0-1.0"
-
 # Tool output: lock files, Jest snapshots of the CDK stacks, and config
 # written by `cdk init`, create-next-app and `shadcn init`. No person wrote
 # these, so none is named; CC0 waives whatever rights could exist in them.
