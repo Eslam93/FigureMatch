@@ -51,8 +51,6 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
-    env:
-      WORK: ${{ runner.temp }}/numbers
     steps:
       - uses: actions/checkout@v4
         with:
@@ -66,10 +64,11 @@ jobs:
           version: latest
           enable-cache: true
 
-      - name: Set up Python
+      - name: Set up Python, and a directory for the checks' outputs
         run: |
           uv python install 3.12
-          mkdir -p "$WORK"
+          echo "WORK=$RUNNER_TEMP/numbers" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/numbers"
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
