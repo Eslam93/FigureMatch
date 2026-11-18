@@ -6,7 +6,9 @@ name: frontend-ci
 
 on:
   push:
-    branches: [main]
+    # `claude/**` so a working branch is checked on every push without
+    # needing an open pull request.
+    branches: [main, 'claude/**']
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend-ci.yml'
