@@ -213,5 +213,9 @@ class FakeOpenAIServer(ThreadingHTTPServer):
         self._thread.start()
 
     def stop(self) -> None:
-        self.shutdown()
+        # shutdown() waits for serve_forever() to notice, so it would wait
+        # forever if the server was never started. A run that fails before
+        # start(), say at a migration, must still clean up and exit.
+        if self._thread.is_alive():
+            self.shutdown()
         self.server_close()

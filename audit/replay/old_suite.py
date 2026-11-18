@@ -27,7 +27,7 @@ Why the other three defects went unnoticed is in `audit/README.md`. For the
 default ref the script exits 1 if what it measures no longer matches what
 that file says.
 
-Needs git, uv and a Postgres server it may create a database on.
+Needs git, uv and a Postgres 13+ server it may create a database on.
 """
 
 from __future__ import annotations

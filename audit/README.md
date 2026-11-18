@@ -7,15 +7,17 @@ you check that claim instead of taking it on trust:
 - [`replay/run.py`](./replay/run.py) runs four probes against the May code and against
   today's. Each probe fails on the May code and passes on today's.
 - [`replay/old_suite.py`](./replay/old_suite.py) reruns the May test suite on the May
-  code and reports which tests executed each faulty line. All four were executed, by
-  tests that passed.
+  code and reports which tests executed each faulty line. Every one of them ran during
+  that passing test run: the lines that do the faulty work ran inside named tests, and
+  the two that only hold a wrong value, a price and a model name, ran when their module
+  was imported.
 
 Neither script calls OpenAI or needs a key.
 
 ## Run it
 
 You need git, [uv](https://docs.astral.sh/uv/), Python 3.10 or later for the scripts
-(the backends install their own 3.12), and a Postgres server the scripts may create
+(the backends install their own 3.12), and a Postgres 13 or later server the scripts may create
 databases on. They default to
 `postgresql://app:app@localhost:5432/app`; pass `--database-url` for another.
 
@@ -100,10 +102,10 @@ branch coverage.
 
 | | Defect | Did the May suite run the faulty line? | What hid it |
 |---|---|---|---|
-| 1 | A stolen refresh token stayed valid | Yes, in 4 tests | The test fixture replaced the request's database session, so the rollback that undid the revocation never ran in a test |
-| 2 | Text costs recorded 5 to 7.5 times too low | Yes, in 8 tests | The one test of the figure computed its expected value from the same wrong prices |
-| 3 | The default image model was shut down | Yes, in 6 tests | Every test used a mock in place of OpenAI, and nothing read OpenAI's list of retired models |
-| 4 | 422 responses echoed a rejected password | Yes, in 8 tests | The tests checked the status and the error code and never read the rest of the body |
+| 1 | A stolen refresh token stayed valid | Yes: the revocation ran in 4 tests | The test fixture replaced the request's database session, so the rollback that undid the revocation never ran in a test |
+| 2 | Text costs recorded 5 to 7.5 times too low | Yes: the wrong prices loaded at import, and the arithmetic using them ran in 8 tests | The one test of the figure computed its expected value from the same wrong prices |
+| 3 | The default image model was shut down | Yes: the default loaded at import, and the call that sends it ran in 6 tests | Every test used a mock in place of OpenAI, and nothing read OpenAI's list of retired models |
+| 4 | 422 responses echoed a rejected password | Yes: the line that returns the raw errors ran in 8 tests | The tests checked the status and the error code and never read the rest of the body |
 
 ### 1. A stolen refresh token stayed valid
 

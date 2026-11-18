@@ -21,7 +21,7 @@ The probes and the stand-in are the same files for both refs. The audit is
 reproduced when every probe fails on the first ref and passes on the
 second, and the script exits 0 only then (1 if not, 2 if it could not run).
 
-Needs git, uv and a Postgres server it may create databases on (see
+Needs git, uv and a Postgres 13+ server it may create databases on (see
 `--database-url`). It makes no call to OpenAI and needs no API key.
 """
 
