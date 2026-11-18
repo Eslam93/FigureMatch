@@ -8,8 +8,8 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
-  title: "FigureMatch",
-  description: "AI Content Marketing Suite",
+  title: "FigureMatch content studio",
+  description: "Drafts marketing copy and matching images with OpenAI.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
