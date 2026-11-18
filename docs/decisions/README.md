@@ -24,6 +24,7 @@ was weighed, the record says so instead of inventing one.
 | [0011](./0011-replay-the-audit-against-a-stand-in.md) | The audit is replayed against a stand-in for OpenAI, not the real API | 2026-11-18, `948fdce` | 2026-11-18 |
 | [0012](./0012-ci-writes-down-its-own-numbers.md) | CI commits the numbers it measured, because its logs expire | 2026-11-18 | 2026-11-18 |
 | [0013](./0013-cut-what-only-pretended-to-work.md) | The Bedrock stubs, the deploy workflow, the Redis switches and the usage model are removed | 2026-11-18 | 2026-11-18 |
+| [0014](./0014-commit-before-the-response-is-sent.md) | Auth writes are committed before the response is sent | 2026-11-18 | 2026-11-18 |
 
 Also in #155, without a record of their own: unhandled 500s are rendered inside the
 middleware stack, so they carry a request id and the security headers; the rendered

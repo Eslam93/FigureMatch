@@ -92,7 +92,12 @@ async def get_db_session() -> AsyncIterator[AsyncSession]:
             raise
 
 
-DbSession = Annotated[AsyncSession, Depends(get_db_session)]
+# scope="function": FastAPI runs the code after `yield` (the commit) when
+# the endpoint returns, before the response is sent. With the default
+# scope, "request", it ran after the response had gone out, so register,
+# login, refresh and logout answered before their writes were committed,
+# and a client's next request could find no user or no token.
+DbSession = Annotated[AsyncSession, Depends(get_db_session, scope="function")]
 
 
 async def end_read_transaction(session: AsyncSession) -> None:
