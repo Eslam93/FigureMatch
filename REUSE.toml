@@ -45,6 +45,7 @@ SPDX-License-Identifier = "MIT"
 [[annotations]]
 path = [
   "backend/uv.lock",
+  "gate/uv.lock",
   "frontend/pnpm-lock.yaml",
   "infra/package-lock.json",
   "infra/test/__snapshots__/*.snap",

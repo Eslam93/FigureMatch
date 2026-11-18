@@ -1,0 +1,52 @@
+# SPDX-FileCopyrightText: 2026 Eslam Hamed
+#
+# SPDX-License-Identifier: MIT
+
+[project]
+name = "figurematch-gate"
+version = "0.1.0"
+description = "The measurement that decides whether the FigureMatch figure checker gets built"
+requires-python = ">=3.12,<3.13"
+license = { text = "MIT" }
+authors = [{ name = "Eslam Hamed" }]
+dependencies = [
+    # Umm al-Qura calendar tables, for Hijri dates in Arabic offers.
+    "hijridate==2.6.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3,<9",
+    "ruff>=0.7,<1",
+    "mypy>=1.13,<2",
+]
+
+[tool.uv]
+# Scripts run from this directory; nothing here is built or installed.
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N", "A", "C4", "RUF", "SIM"]
+ignore = [
+    "RUF001", # Arabic letters and digits in strings are the subject matter
+    "RUF002",
+    "RUF003",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = ["--strict-markers", "-ra"]
