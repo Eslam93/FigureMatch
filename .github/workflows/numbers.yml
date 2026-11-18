@@ -9,8 +9,10 @@
 # coverage, the frontend and infrastructure suites, reuse lint, the audit
 # replay, and the gate's score. A failing check is recorded as failing, and
 # the job still fails at the end. .github/scripts/numbers.py turns the
-# outputs into numbers/<date>.md. On main, CI commits that file itself; on
-# any other branch it only appears in the run's summary.
+# outputs into numbers/<date>.md. On main, CI commits that file itself to
+# the `numbers` branch: main takes changes only through pull requests, and
+# its protection refuses a push from CI. On any other branch the file only
+# appears in the run's summary.
 name: numbers
 
 on:
@@ -36,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
-      contents: write # to commit numbers/ on main
+      contents: write # to push to the numbers branch
     services:
       postgres:
         image: postgres:16
@@ -131,24 +133,36 @@ jobs:
       - name: Write the numbers file
         run: python3 .github/scripts/numbers.py "$WORK" numbers | tee -a "$GITHUB_STEP_SUMMARY"
 
-      - name: Commit it to main
+      - name: Commit it to the numbers branch
         if: github.ref == 'refs/heads/main'
         env:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add numbers/
+          branch_dir="$RUNNER_TEMP/numbers-branch"
+          if git ls-remote --exit-code --heads origin numbers > /dev/null; then
+            git fetch -q origin numbers
+            git worktree add -q -B numbers "$branch_dir" origin/numbers
+          else
+            # First run: a branch with no history, holding only the records.
+            git worktree add -q --detach "$branch_dir"
+            git -C "$branch_dir" switch -q --orphan numbers
+          fi
+          cp numbers/*.md "$branch_dir/"
+          cd "$branch_dir"
+          git add -A
           if git diff --cached --quiet; then
             echo "Nothing new to commit."
             exit 0
           fi
-          git commit -q -m "chore(numbers): CI's measurements of ${GITHUB_SHA::7}" -m "Run: $RUN_URL"
+          git commit -q -m "CI's measurements of ${GITHUB_SHA::7}" -m "Run: $RUN_URL"
           for attempt in 1 2 3; do
-            git pull -q --rebase origin main && git push -q origin HEAD:main && exit 0
+            git push -q origin HEAD:refs/heads/numbers && exit 0
+            git pull -q --rebase origin numbers || true
             sleep $((attempt * 5))
           done
-          echo "::error::Could not push the numbers file to main."
+          echo "::error::Could not push the numbers file to the numbers branch."
           exit 1
 
       - name: Fail if any check failed

@@ -17,9 +17,15 @@ author's word.
 The `numbers` workflow runs every check that produces a number: the backend suite with
 coverage, the frontend and infrastructure suites, `reuse lint`, the audit replay and the
 gate's score. It writes the results, with the commit, the run's address and the tool
-versions, to a dated file under [`numbers/`](../../numbers/). On `main`, CI commits that
-file itself, as `github-actions[bot]`. On any other branch it only shows the file in the
-run's summary.
+versions, to a dated file. After a push to `main`, CI commits that file itself, as
+`github-actions[bot]`, to the
+[`numbers`](https://github.com/Eslam93/FigureMatch/tree/numbers) branch. On any other
+branch it only shows the file in the run's summary.
+
+The first version committed to `main` itself. Its first run there, on 18 November 2026,
+measured everything and was then refused: `main` takes changes only through pull
+requests, and its protection turned the bot's push away (`GH006`). The records moved to
+a branch of their own, which leaves that rule as it is.
 
 ## Alternatives
 
@@ -27,6 +33,7 @@ Keeping the numbers only in the logs, or as run artifacts, was rejected: both ex
 
 ## Consequences
 
-- Each push to `main` that changes code adds one commit by the bot.
+- Each push to `main` that changes code adds one commit by the bot to the `numbers`
+  branch, which shares no history with `main`.
 - A number in `numbers/` was measured by GitHub's runner on the commit it names. It says
   nothing about any other commit.
